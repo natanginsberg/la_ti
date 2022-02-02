@@ -33,8 +33,7 @@ List<String> _items = [
   // "https://firebasestorage.googleapis.com/v0/b/auditech-877eb.appspot.com/o/VID_20201203_225432.mp4?alt=media&token=adbf9212-78e4-416c-b7fe-0accfc5066b9"
 ];
 
-String accessKey = "74KI0BRDXNBRPRN5474W";
-String privateKey = "ODl6faIOTQCnF8ElyT6D8jZDr4aclNXmI9Yf6Yan";
+
 
 class MainScreen extends StatefulWidget {
   MainScreen();
