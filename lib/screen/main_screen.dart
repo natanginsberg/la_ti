@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -11,7 +10,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:intl/intl.dart';
 import 'package:la_ti/custom_widgets/song_grid.dart';
 import 'package:la_ti/model/custom_url_audio_player.dart';
 import 'package:la_ti/model/recording.dart';
@@ -19,10 +17,9 @@ import 'package:la_ti/model/recording_to_play.dart';
 import 'package:la_ti/model/session.dart';
 import 'package:la_ti/model/song.dart';
 import 'package:la_ti/model/suggestions.dart';
-import 'package:minio/minio.dart';
+import 'package:la_ti/utils/wasabi_uploader.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:video_player/video_player.dart';
-import 'package:wakelock/wakelock.dart';
 
 // List<CameraDescription> cameras;
 
@@ -32,8 +29,6 @@ List<String> _items = [
   // "https://firebasestorage.googleapis.com/v0/b/auditech-877eb.appspot.com/o/VID_20200907_153553.mp4?alt=media&token=1c7a6c63-66b0-4c46-8bb4-c9b6f0bf6f29",
   // "https://firebasestorage.googleapis.com/v0/b/auditech-877eb.appspot.com/o/VID_20201203_225432.mp4?alt=media&token=adbf9212-78e4-416c-b7fe-0accfc5066b9"
 ];
-
-
 
 class MainScreen extends StatefulWidget {
   MainScreen();
@@ -45,12 +40,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
-  final minio = Minio(
-    endPoint: "s3.wasabisys.com",
-    accessKey: accessKey,
-    secretKey: privateKey,
-  );
-
   bool cameraReady = false;
 
   List<CustomUrlAudioPlayer> playingUrls = [];
@@ -294,9 +283,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               width: MediaQuery.of(context).size.width,
               height: 48,
               child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 15,
                     ),
                     Text(
@@ -490,16 +479,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           GestureDetector(
             onTap: () async {
               pauseAudio();
-              CustomUrlAudioPlayer customPlayer =
-                  CustomUrlAudioPlayer(item.path, () {
-                endSession();
-              });
+              // CustomUrlAudioPlayer customPlayer =
+              //     CustomUrlAudioPlayer(item.path, () {
+              //   endSession();
+              // });
               // customPlayer.initialize();
               // resetRecordings();
               recordingsToPlay.resetRecordings();
               setState(() {
                 // playingUrls.add(customPlayer);
-                recordingsToPlay.addPlayer(customPlayer);
+                recordingsToPlay.addPlayer(item.path);
               });
             },
             child: Container(
@@ -513,41 +502,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
   }
 
-  playAudio() async {
-    setState(() {
-      isPlaying = true;
-    });
-    countdown = 3;
-    startTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        countdown--;
-      });
-      if (countdown == 1 && recordVideo) {
-        // if (songStarted) {
-        //   controller!.resumeVideoRecording();
-        // } else {
-        controller!.startVideoRecording();
-        // }
-      } else if (countdown == 0) {
-        startTimer.cancel();
-        startSession();
-      }
-    });
-  }
-
   pauseAudio() async {
     setState(() {
       isPlaying = false;
     });
-    // if (playingUrls.isNotEmpty) {
-    //   for (CustomUrlAudioPlayer player in playingUrls) {
-    //     await player.pause();
-    //   }
-    //   Duration? currentTime = await playingUrls[0].getCurrentPosition();
-    //   for (CustomUrlAudioPlayer player in playingUrls) {
-    //     if (currentTime != null) await player.seek(currentTime);
-    //   }
-    // }
+
     recordingsToPlay.pauseVideo();
   }
 
@@ -559,49 +518,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   //   return d;
   // }
 
-  void startSession() async {
-    setState(() {
-      songStarted = true;
-    });
-    Wakelock.enable;
-    // todo start videos
-    recordingsToPlay.playVideos();
-    // for (CustomUrlAudioPlayer player in playingUrls) {
-    //   await player.play();
-    // }
-    // if (watchingSession) {
-    //   playbackController.play();
-    // }
-    // if (playingUrls.isNotEmpty) {
-    //   songLength = await playingUrls[0].getDuration();
-    if (recordingsToPlay.isEmpty()) {
-      timer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) {
-        setState(() {
-          _progressValue = Duration(milliseconds: timer.tick * 100);
-        });
-      });
-    } else {
-      timer =
-          Timer.periodic(const Duration(milliseconds: 100), (Timer t) async {
-        _progressValue = await recordingsToPlay.getCurrentPosition();
-        // (await playingUrls[0].getCurrentPosition())!;
-        setState(() {});
-        songLength = await recordingsToPlay.getSongLength();
-        setState(() {});
-      });
-    }
-  }
-
   stopVideoRecording() async {
-    print("reached");
     setState(() {
       songFinished = true;
     });
 
     vFile = await controller!.stopVideoRecording();
-
-    videoFile = html.File(await vFile.readAsBytes(), vFile.path);
-    playVideo(videoFile.name);
+    recordingsToPlay.setRecordingPath(vFile.path);
   }
 
   void endSession() async {
@@ -611,8 +534,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       songStarted = false;
     });
     if (recordVideo) await stopVideoRecording();
-    // stopVideos();
-    // resetRecordings();
+
     recordingsToPlay.stopVideos();
     recordingsToPlay.resetRecordings();
     setState(() {
@@ -684,6 +606,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
   }
 
+  void uploadRecordingToWasabi() async {
+    print("reached here");
+    uploadToWasabi(vFile.openRead(), await vFile.length());
+  }
+
   void playVideo(String atUrl) async {
     if (kIsWeb) {
       // uploadToWasabi(vFile.openRead(), await vFile.length());
@@ -693,43 +620,31 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         watchingUrls.add(customUrlAudioPlayer);
       });
       customUrlAudioPlayer.initialize();
-      // final v = html.window.document.getElementById('videoPlayer');
-      // if (v != null) {
-      //   v.setInnerHtml('<source type="video/mp4" src="$atUrl">',
-      //       validator: html.NodeValidatorBuilder()
-      //         ..allowElement('source', attributes: ['src', 'type']));
-      //   final a = html.window.document.getElementById('triggerVideoPlayer');
-      //   if (a != null) {
-      //     a.dispatchEvent(html.MouseEvent('click'));
-      //   }
-      // }
+      final v = html.window.document.getElementById('videoPlayer');
+      if (v != null) {
+        v.setInnerHtml('<source type="video/mp4" src="$atUrl">',
+            validator: html.NodeValidatorBuilder()
+              ..allowElement('source', attributes: ['src', 'type']));
+        final a = html.window.document.getElementById('triggerVideoPlayer');
+        if (a != null) {
+          a.dispatchEvent(html.MouseEvent('click'));
+        }
+      }
     } else {
       // we're not on the web platform
       // and should use the video_player package
     }
   }
 
-  void uploadToWasabi(Stream<Uint8List> fileStream, int fileLength) async {
-    DateTime now = DateTime.now();
-    String formattedDate = DateFormat('yyyy-MM-dd – kk:mm').format(now);
-    String fileName = formattedDate;
-    await minio.putObject(
-      'new-test-bucket-222',
-      fileName,
-      fileStream,
-      metadata: {'x-amz-acl': 'public-read'},
-      onProgress: (bytes) => setState(() {
-        uploadPercent = 100 * bytes.toDouble() / fileLength.toDouble();
-      }),
-    );
-    String url = "https://s3.wasabisys.com/new-test-bucket-222/$fileName";
+  void uploadToWasabi(Stream<Uint8List> fileStream, int delay) async {
+    String url = await WasabiUploader().uploadToWasabi(fileStream);
     CustomUrlAudioPlayer customUrlAudioPlayer =
         CustomUrlAudioPlayer(url, endSession);
     setState(() {
       watchingUrls.add(customUrlAudioPlayer);
     });
     customUrlAudioPlayer.initialize();
-    addUrlToFirebase(url);
+    addUrlToFirebase(url, delay);
   }
 
   void getFirebaseUrls() async {
@@ -749,16 +664,20 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     });
   }
 
-  void addUrlToFirebase(String value) async {
-    FirebaseFirestore.instance.collection('urls').add({"path": value});
-    await FirebaseFirestore.instance
-        .collection('songs')
-        .doc(currentSong.getId())
-        .collection("sessions")
-        .doc(currentSong.currentSession.id)
-        .collection("recordings")
-        .doc()
-        .set({"url": value});
+  void addUrlToFirebase(String value, int delay) async {
+    FirebaseFirestore.instance
+        .collection('urls')
+        .add({"path": value, "delay": delay});
+    if (currentSong.name != "") {
+      await FirebaseFirestore.instance
+          .collection('songs')
+          .doc(currentSong.getId())
+          .collection("sessions")
+          .doc(currentSong.currentSession.id)
+          .collection("recordings")
+          .doc()
+          .set({"url": value, "delay": delay});
+    }
   }
 
   pickAndUploadFiles() async {
@@ -767,13 +686,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (result != null) {
       Uint8List? fileBytes = result.files.first.bytes;
       Future<Uint8List> fileStream = Future(() => fileBytes!);
-      uploadToWasabi(Stream.fromFuture(fileStream), result.files.first.size);
-
-      // String fileName = result.files.first.name;
-
-      // Upload file
-      // await FirebaseStorage.instance.ref('uploads/$fileName').putData(
-      //     fileBytes);
+      uploadToWasabi(Stream.fromFuture(fileStream), 0);
     }
   }
 
@@ -784,47 +697,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       recordVideo: recordVideo,
       cameraController: controller,
       stopRecording: stopVideoRecording,
-    );
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        countdown != 0 && isPlaying
-            ? TextButton(
-                onPressed: () {},
-                child: Text(
-                  countdown.toString(),
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
-                ),
-              )
-            : IconButton(
-                onPressed: () => isPlaying ? endSession() : playAudio(),
-                icon: isPlaying
-                    ? const Icon(Icons.stop)
-                    : const Icon(Icons.play_arrow),
-                color: Colors.white,
-                iconSize: 45,
-              ),
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ProgressBar(
-              total: songLength,
-              progressBarColor: Colors.blue,
-              progress: _progressValue,
-              thumbRadius: 1,
-              timeLabelTextStyle: const TextStyle(color: Colors.white),
-              barHeight: 8,
-              timeLabelLocation: TimeLabelLocation.sides,
-            ),
-          ),
-        ),
-        Flexible(
-          child: buildGridView(),
-        )
-      ],
+      uploadRecording: uploadRecordingToWasabi,
     );
   }
 
@@ -1417,6 +1290,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     Session newSession =
         Session(docRef.id, tempoController.text, genreController.text);
     setState(() {
+      watchingUrls.clear();
       currentSong.addSession(newSession);
       currentSong.currentSession = newSession;
       selectedValue = newSession;

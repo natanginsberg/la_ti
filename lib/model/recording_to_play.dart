@@ -1,7 +1,23 @@
+import 'package:flutter/cupertino.dart';
 import 'package:la_ti/model/custom_url_audio_player.dart';
 
 class RecordingsToPlay {
   List<CustomUrlAudioPlayer> players = [];
+  static int counter = 0;
+  late VoidCallback songEnded;
+  String recordingPath = "";
+
+  late CustomUrlAudioPlayer previousRecordingPlayer;
+
+  int startTime = 0;
+
+  int delay = 0;
+
+  RecordingsToPlay();
+
+  addEndFunction(VoidCallback endSession) {
+    songEnded = endSession;
+  }
 
   startVideos() async {
     for (CustomUrlAudioPlayer player in players) {
@@ -59,9 +75,13 @@ class RecordingsToPlay {
     players.clear();
   }
 
-  addPlayer(CustomUrlAudioPlayer customUrlAudioPlayer) async {
-    players.add(customUrlAudioPlayer);
-    customUrlAudioPlayer.initialize();
+  addPlayer(String path) async {
+    counter++;
+    CustomUrlAudioPlayer customPlayer = CustomUrlAudioPlayer(path, () {
+      songEnded();
+    });
+    players.add(customPlayer);
+    // customUrlAudioPlayer.initialize();
   }
 
   getPlayerController(int index) {
@@ -76,6 +96,40 @@ class RecordingsToPlay {
   void playVideos() async {
     for (CustomUrlAudioPlayer player in players) {
       await player.play();
+      if (delay == 0){
+        setDelay(DateTime.now().millisecondsSinceEpoch);
+      }
     }
+  }
+
+  String getPlayerUrl(int index) {
+    return players[index].path;
+  }
+
+  Widget getPlayWidget(int index) {
+    return players[index].playWidget();
+  }
+
+  void setRecordingPath(String path) {
+    recordingPath = path;
+  }
+
+  void addRecordingMadeToRecordings() {
+    previousRecordingPlayer = CustomUrlAudioPlayer(recordingPath, () {
+      songEnded();
+    });
+  }
+
+  Future<void> playRecording() async {
+    await previousRecordingPlayer.play();
+    startVideos();
+  }
+
+  void setStartTime(int millisecondsSinceEpoch) {
+    startTime = millisecondsSinceEpoch;
+  }
+
+  void setDelay(int currentTime) {
+    delay = currentTime - startTime;
   }
 }

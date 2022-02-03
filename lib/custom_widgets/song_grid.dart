@@ -6,8 +6,6 @@ import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:la_ti/model/recording_to_play.dart';
-import 'package:video_js/video_js.dart';
-import 'package:video_player/video_player.dart';
 import 'package:wakelock/wakelock.dart';
 
 class SongGrid extends StatefulWidget {
@@ -20,13 +18,16 @@ class SongGrid extends StatefulWidget {
 
   VoidCallback stopRecording;
 
+  VoidCallback uploadRecording;
+
   //todo understand how to use the key
   SongGrid(
       {required this.stopRecording,
       this.cameraController,
       required this.recordingsToPlay,
       required this.recordVideo,
-      required this.cameraWidget});
+      required this.cameraWidget,
+      required this.uploadRecording});
 
   @override
   State<SongGrid> createState() => _SongGridState();
@@ -48,6 +49,18 @@ class _SongGridState extends State<SongGrid> {
 
   bool songStarted = false;
 
+  bool songEnded = false;
+
+  bool watching = false;
+
+  bool uploadStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.recordingsToPlay.addEndFunction(endSession);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -64,14 +77,60 @@ class _SongGridState extends State<SongGrid> {
                       fontSize: 20),
                 ),
               )
-            : IconButton(
-                onPressed: () => isPlaying ? endSession() : playAudio(),
-                icon: isPlaying
-                    ? const Icon(Icons.stop)
-                    : const Icon(Icons.play_arrow),
-                color: Colors.white,
-                iconSize: 45,
-              ),
+            : !songEnded || watching
+                ? IconButton(
+                    onPressed: () =>
+                        watching || isPlaying ? endSession() : playAudio(),
+                    icon: watching || isPlaying
+                        ? const Icon(Icons.stop)
+                        : const Icon(Icons.play_arrow),
+                    color: Colors.white,
+                    iconSize: 45,
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      TextButton(
+                        onPressed: () => watchRecording(),
+                        child: const Text(
+                          "Watch Recording",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all(Colors.green)),
+                      ),
+                      TextButton(
+                        onPressed: () => playAudio(),
+                        child: const Text("Sing Again",
+                            style: TextStyle(color: Colors.white)),
+                        style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all(Colors.blue)),
+                      ),
+                      TextButton(
+                        onPressed: () => {startUpload()},
+                        child: Text(
+                            uploadStarted ? "Uploading" : "Upload Recording"),
+                        style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all(Colors.yellow)),
+                      ),
+                      TextButton(
+                        onPressed: () => setState(() {
+                          songEnded = false;
+                          watching = false;
+                        }),
+                        child: const Text(
+                          "Cancel",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all(Colors.red)),
+                      ),
+                    ],
+                  ),
         Center(
           child: Padding(
             padding: const EdgeInsets.all(8.0),
@@ -108,20 +167,25 @@ class _SongGridState extends State<SongGrid> {
           return index == 0
               ? SizedBox(
                   width: 400,
-                  child: Stack(children: [
-                    widget.cameraWidget,
-                    if (songStarted && widget.recordVideo)
-                      const Padding(
-                        padding: EdgeInsets.all(5),
-                        child: CircleAvatar(
-                            radius: 10,
-                            backgroundColor: Colors.red,
-                            child: Icon(
-                              Icons.more_vert,
-                              color: Colors.transparent,
-                            )),
-                      )
-                  ]))
+                  child: watching
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(20.0),
+                          child: widget.recordingsToPlay.previousRecordingPlayer
+                              .blobPlayer)
+                      : Stack(children: [
+                          widget.cameraWidget,
+                          if (songStarted && widget.recordVideo)
+                            const Padding(
+                              padding: EdgeInsets.all(5),
+                              child: CircleAvatar(
+                                  radius: 10,
+                                  backgroundColor: Colors.red,
+                                  child: Icon(
+                                    Icons.more_vert,
+                                    color: Colors.transparent,
+                                  )),
+                            )
+                        ]))
               : Container(
                   width: 400,
                   color: Colors.transparent,
@@ -129,25 +193,20 @@ class _SongGridState extends State<SongGrid> {
                     children: [
                       ClipRRect(
                           borderRadius: BorderRadius.circular(20.0),
-                          child: VideoJsWidget(
-                            videoJsController: widget.recordingsToPlay
-                                  .getPlayerController(index - 1),
-                            height: MediaQuery.of(context).size.width / 2.5,
-                            width: MediaQuery.of(context).size.width / 1.5,
-                          )),
-                          // VideoPlayer(widget.recordingsToPlay
-                          //     .getPlayerController(index - 1))),
-                      // playingUrls[index - 1].getController())),
+                          // )),
+                          child:
+                              widget.recordingsToPlay.getPlayWidget(index - 1)),
                       SafeArea(
                           child: IconButton(
                         onPressed: () async {
-                          // playingUrls[index - 1].removeAudioPlayer();
                           setState(() {
-                            // playingUrls.removeAt(index - 1);
                             widget.recordingsToPlay.removePlayer(index - 1);
                           });
                         },
-                        icon: const Icon(Icons.remove_circle),
+                        icon: const Icon(
+                          Icons.remove_circle,
+                          color: Colors.white,
+                        ),
                       ))
                     ],
                   ),
@@ -158,9 +217,12 @@ class _SongGridState extends State<SongGrid> {
   playAudio() async {
     setState(() {
       isPlaying = true;
+      songEnded = false;
+      watching = false;
+      uploadStarted = false;
     });
     countdown = 3;
-    startTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    startTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       setState(() {
         countdown--;
       });
@@ -168,7 +230,9 @@ class _SongGridState extends State<SongGrid> {
         // if (songStarted) {
         //   controller!.resumeVideoRecording();
         // } else {
-        widget.cameraController!.startVideoRecording();
+        await widget.cameraController!.startVideoRecording();
+        widget.recordingsToPlay.setStartTime(DateTime.now().millisecondsSinceEpoch);
+
         // }
       } else if (countdown == 0) {
         startTimer.cancel();
@@ -182,16 +246,7 @@ class _SongGridState extends State<SongGrid> {
       songStarted = true;
     });
     Wakelock.enable;
-    // todo start videos
     widget.recordingsToPlay.playVideos();
-    // for (CustomUrlAudioPlayer player in playingUrls) {
-    //   await player.play();
-    // }
-    // if (watchingSession) {
-    //   playbackController.play();
-    // }
-    // if (playingUrls.isNotEmpty) {
-    //   songLength = await playingUrls[0].getDuration();
     if (widget.recordingsToPlay.isEmpty()) {
       timer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) {
         setState(() {
@@ -211,20 +266,46 @@ class _SongGridState extends State<SongGrid> {
   }
 
   void endSession() async {
-    timer.cancel();
+    if (timer.isActive) {
+      timer.cancel();
+    }
+    if (widget.recordVideo && !watching) widget.stopRecording();
+    widget.recordingsToPlay.stopVideos();
+    if (watching) {
+      widget.recordingsToPlay.previousRecordingPlayer.pause();
+    } else {
+      widget.recordingsToPlay.resetRecordings();
+    }
+    if (watching) {
+      await widget.cameraController!.initialize();
+    }
     setState(() {
+      watching = false;
       isPlaying = false;
       songStarted = false;
+      songEnded = true;
     });
-    if (widget.recordVideo) widget.stopRecording();
-    // stopVideos();
-    // resetRecordings();
-    widget.recordingsToPlay.stopVideos();
-    widget.recordingsToPlay.resetRecordings();
+
     if (widget.recordVideo) {
       // calculateDelay();
       // playVideo(videoFile.name);
       // await openPlaybackDialog();
     }
+  }
+
+  watchRecording() async {
+    widget.recordingsToPlay.addRecordingMadeToRecordings();
+    setState(() {
+      watching = true;
+    });
+    await Future.delayed(Duration(milliseconds: 500));
+    await widget.recordingsToPlay.playRecording();
+  }
+
+  startUpload() {
+    setState(() {
+      uploadStarted = true;
+    });
+    widget.uploadRecording();
   }
 }
