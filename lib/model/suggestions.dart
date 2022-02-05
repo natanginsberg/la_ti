@@ -7,7 +7,7 @@ class Suggestion {
   Suggestion(this.songName, this.songArtist);
 
   String getSuggestionName() {
-    return (songArtist + " by " + songName);
+    return (songArtist + " - " + songName);
   }
 
   contains(String searchedValue) {

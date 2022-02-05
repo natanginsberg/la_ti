@@ -5,6 +5,7 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:la_ti/model/custom_url_audio_player.dart';
 import 'package:la_ti/model/recording_to_play.dart';
 import 'package:wakelock/wakelock.dart';
 
@@ -20,6 +21,8 @@ class SongGrid extends StatefulWidget {
 
   VoidCallback uploadRecording;
 
+  Function(CustomUrlAudioPlayer) itemReoved;
+
   //todo understand how to use the key
   SongGrid(
       {required this.stopRecording,
@@ -27,7 +30,8 @@ class SongGrid extends StatefulWidget {
       required this.recordingsToPlay,
       required this.recordVideo,
       required this.cameraWidget,
-      required this.uploadRecording});
+      required this.uploadRecording,
+      required this.itemReoved});
 
   @override
   State<SongGrid> createState() => _SongGridState();
@@ -55,6 +59,10 @@ class _SongGridState extends State<SongGrid> {
 
   bool uploadStarted = false;
 
+  bool recordVideo = false;
+
+  bool recordAudio = false;
+
   @override
   void initState() {
     super.initState();
@@ -63,92 +71,29 @@ class _SongGridState extends State<SongGrid> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        countdown != 0 && isPlaying
-            ? TextButton(
-                onPressed: () {},
-                child: Text(
-                  countdown.toString(),
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
-                ),
-              )
-            : !songEnded || watching
-                ? IconButton(
-                    onPressed: () =>
-                        watching || isPlaying ? endSession() : playAudio(),
-                    icon: watching || isPlaying
-                        ? const Icon(Icons.stop)
-                        : const Icon(Icons.play_arrow),
-                    color: Colors.white,
-                    iconSize: 45,
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      TextButton(
-                        onPressed: () => watchRecording(),
-                        child: const Text(
-                          "Watch Recording",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.all(Colors.green)),
-                      ),
-                      TextButton(
-                        onPressed: () => playAudio(),
-                        child: const Text("Sing Again",
-                            style: TextStyle(color: Colors.white)),
-                        style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.all(Colors.blue)),
-                      ),
-                      TextButton(
-                        onPressed: () => {startUpload()},
-                        child: Text(
-                            uploadStarted ? "Uploading" : "Upload Recording"),
-                        style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.all(Colors.yellow)),
-                      ),
-                      TextButton(
-                        onPressed: () => setState(() {
-                          songEnded = false;
-                          watching = false;
-                        }),
-                        child: const Text(
-                          "Cancel",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.all(Colors.red)),
-                      ),
-                    ],
-                  ),
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ProgressBar(
-              total: songLength,
-              progressBarColor: Colors.blue,
-              progress: _progressValue,
-              thumbRadius: 1,
-              timeLabelTextStyle: const TextStyle(color: Colors.white),
-              barHeight: 8,
-              timeLabelLocation: TimeLabelLocation.sides,
-            ),
-          ),
-        ),
-        Flexible(
-          child: buildGridView(),
-        )
-      ],
+    return SizedBox(
+      height: MediaQuery.of(context).size.height,
+      width: MediaQuery.of(context).size.width * 2 / 3,
+      child: Stack(
+        children: [
+          Positioned(
+              top: 10,
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height,
+                width: MediaQuery.of(context).size.width* 2 / 3,
+                child: buildGridView(),
+              )),
+          Positioned(
+            bottom: 50,
+            height: 80,
+            width: MediaQuery.of(context).size.width* 2 / 3,
+            child: Column(children: [
+              aboveProgressBar(),
+              progressBar(),
+            ]),
+          )
+        ],
+      ),
     );
   }
 
@@ -200,6 +145,8 @@ class _SongGridState extends State<SongGrid> {
                           child: IconButton(
                         onPressed: () async {
                           setState(() {
+                            widget.itemReoved(
+                                widget.recordingsToPlay.players[index - 1]);
                             widget.recordingsToPlay.removePlayer(index - 1);
                           });
                         },
@@ -231,7 +178,8 @@ class _SongGridState extends State<SongGrid> {
         //   controller!.resumeVideoRecording();
         // } else {
         await widget.cameraController!.startVideoRecording();
-        widget.recordingsToPlay.setStartTime(DateTime.now().millisecondsSinceEpoch);
+        widget.recordingsToPlay
+            .setStartTime(DateTime.now().millisecondsSinceEpoch);
 
         // }
       } else if (countdown == 0) {
@@ -307,5 +255,143 @@ class _SongGridState extends State<SongGrid> {
       uploadStarted = true;
     });
     widget.uploadRecording();
+  }
+
+  aboveProgressBar() {
+    return countdown != 0 && isPlaying
+        ? TextButton(
+            onPressed: () {},
+            child: Text(
+              countdown.toString(),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20),
+            ),
+          )
+        : !songEnded || watching
+            ? Stack(
+                children: [
+                  Align(
+                    alignment: Alignment.center,
+                    child: IconButton(
+                      onPressed: () =>
+                          watching || isPlaying ? endSession() : playAudio(),
+                      icon: watching || isPlaying
+                          ? const Icon(Icons.stop)
+                          : const Icon(Icons.play_arrow),
+                      color: Colors.white,
+                      iconSize: 45,
+                    ),
+                  ),
+                  Positioned(
+                    right: MediaQuery.of(context).size.width / 6,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Center(
+                          child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                primary: recordVideo
+                                    ? Colors.redAccent
+                                    : Colors.grey,
+                                shape: const CircleBorder(),
+                                padding: const EdgeInsets.all(15),
+                              ),
+                              onPressed: () => setState(() {
+                                    recordVideo = !recordVideo;
+                                    if (recordVideo) {
+                                      recordAudio = true;
+                                    }
+                                  }),
+                              child: Icon(
+                                Icons.videocam_rounded,
+                                color: recordVideo ? Colors.blue : Colors.white,
+                                size: 40,
+                              )),
+                        ),
+                        Center(
+                          child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                primary: recordAudio
+                                    ? Colors.redAccent
+                                    : Colors.grey,
+                                shape: const CircleBorder(),
+                                padding: const EdgeInsets.all(15),
+                              ),
+                              onPressed: () => setState(() {
+                                    recordAudio = !recordAudio;
+                                    if (!recordAudio) {
+                                      recordVideo = false;
+                                    }
+                                  }),
+                              child: Icon(
+                                Icons.mic,
+                                color: recordAudio ? Colors.blue : Colors.white,
+                                size: 40,
+                              )),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => watchRecording(),
+                    child: const Text(
+                      "Watch Recording",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ButtonStyle(
+                        backgroundColor:
+                            MaterialStateProperty.all(Colors.green)),
+                  ),
+                  TextButton(
+                    onPressed: () => playAudio(),
+                    child: const Text("Sing Again",
+                        style: TextStyle(color: Colors.white)),
+                    style: ButtonStyle(
+                        backgroundColor:
+                            MaterialStateProperty.all(Colors.blue)),
+                  ),
+                  TextButton(
+                    onPressed: () => {startUpload()},
+                    child:
+                        Text(uploadStarted ? "Uploading" : "Upload Recording"),
+                    style: ButtonStyle(
+                        backgroundColor:
+                            MaterialStateProperty.all(Colors.yellow)),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      songEnded = false;
+                      watching = false;
+                    }),
+                    child: const Text(
+                      "Cancel",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(Colors.red)),
+                  ),
+                ],
+              );
+  }
+
+  progressBar() {
+    return Center(
+      child: ProgressBar(
+        total: songLength,
+        progressBarColor: Colors.blue,
+        progress: _progressValue,
+        thumbRadius: 1,
+        timeLabelTextStyle: const TextStyle(color: Colors.white),
+        barHeight: 8,
+        timeLabelLocation: TimeLabelLocation.sides,
+      ),
+    );
   }
 }

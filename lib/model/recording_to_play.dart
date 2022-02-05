@@ -84,6 +84,11 @@ class RecordingsToPlay {
     // customUrlAudioPlayer.initialize();
   }
 
+  addCustomPlayer(CustomUrlAudioPlayer player2){
+    player2.resetVideo();
+    players.add(player2);
+  }
+
   getPlayerController(int index) {
     return players[index].getController();
   }

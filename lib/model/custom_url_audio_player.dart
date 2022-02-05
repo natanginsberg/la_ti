@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:video_js/video_js.dart';
 import 'package:video_player/video_player.dart';
 
 class CustomUrlAudioPlayer {
@@ -42,7 +41,7 @@ class CustomUrlAudioPlayer {
   }
 
   initialize() async {
-    await _controller.initialize();
+    // await _controller.initialize();
   }
 
   play() async {
@@ -72,8 +71,9 @@ class CustomUrlAudioPlayer {
     return Future(() => Duration(seconds: videoElement.currentTime.toInt()));
   }
 
-  VideoPlayerController getController() {
-    return _controller;
+  Widget getController() {
+    return playWidget();
+    // return _controller;
   }
 
   getDuration() async {
@@ -91,6 +91,8 @@ class CustomUrlAudioPlayer {
   Widget playWidget() {
     return blobPlayer;
   }
+
+
 }
 
 class blobUrlPlayer extends StatefulWidget {

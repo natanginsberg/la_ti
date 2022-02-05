@@ -382,66 +382,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     ));
   }
 
-  buildGridView() {
-    return GridView.builder(
-        controller: _mainController,
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 400,
-            childAspectRatio: 1,
-            crossAxisSpacing: 5,
-            mainAxisSpacing: 5),
-        itemCount: recordingsToPlay.players.length + 1,
-        // playingUrls.length + 1,
-        itemBuilder: (BuildContext ctx, index) {
-          // print(index);
-          return index == 0
-              ? SizedBox(
-                  width: 400,
-                  child: Stack(children: [
-                    watchingSession
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(20.0),
-                            child: VideoPlayer(playbackController))
-                        : _cameraPreviewWidget(),
-                    if (songStarted && recordVideo)
-                      const Padding(
-                        padding: EdgeInsets.all(5),
-                        child: CircleAvatar(
-                            radius: 10,
-                            backgroundColor: Colors.red,
-                            child: Icon(
-                              Icons.more_vert,
-                              color: Colors.transparent,
-                            )),
-                      )
-                  ]))
-              : Container(
-                  width: 400,
-                  color: Colors.transparent,
-                  child: Stack(
-                    children: [
-                      ClipRRect(
-                          borderRadius: BorderRadius.circular(20.0),
-                          child: VideoPlayer(
-                              recordingsToPlay.getPlayerController(index - 1))),
-                      // playingUrls[index - 1].getController())),
-                      SafeArea(
-                          child: IconButton(
-                        onPressed: () async {
-                          // playingUrls[index - 1].removeAudioPlayer();
-                          setState(() {
-                            // playingUrls.removeAt(index - 1);
-                            recordingsToPlay.removePlayer(index - 1);
-                          });
-                        },
-                        icon: const Icon(Icons.remove_circle),
-                      ))
-                    ],
-                  ),
-                );
-        });
-  }
-
   Widget _buildMenuList() {
     return GridView.builder(
       shrinkWrap: true,
@@ -453,8 +393,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           item: item,
         );
       },
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 200,
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: MediaQuery.of(context).size.width / 5,
           childAspectRatio: 1,
           crossAxisSpacing: 15,
           mainAxisSpacing: 15),
@@ -470,34 +410,55 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       onExit: (PointerEvent details) => setState(() {
         amIHovering = false;
       }),
-      child: Stack(
-        children: [
-          SizedBox(
-            width: MediaQuery.of(context).size.width / 2 - 50,
-            child: Center(child: VideoPlayer(item.getController())),
-          ),
-          GestureDetector(
-            onTap: () async {
-              pauseAudio();
-              // CustomUrlAudioPlayer customPlayer =
-              //     CustomUrlAudioPlayer(item.path, () {
-              //   endSession();
-              // });
-              // customPlayer.initialize();
-              // resetRecordings();
-              recordingsToPlay.resetRecordings();
-              setState(() {
-                // playingUrls.add(customPlayer);
-                recordingsToPlay.addPlayer(item.path);
-              });
-            },
-            child: Container(
-              width: MediaQuery.of(context).size.width / 2 - 50,
-              color: Colors.transparent,
-              // child: Center(child: VideoPlayer(item.getController())),
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width / 2 - 50,
+        child: Stack(
+          children: [
+            Center(
+                child:
+                    // VideoPlayer(item.getController())
+                    item.getController()),
+            GestureDetector(
+              onTap: () async {
+                pauseAudio();
+                recordingsToPlay.resetRecordings();
+                setState(() {
+                  // playingUrls.add(customPlayer);
+                  recordingsToPlay.addCustomPlayer(item);
+                  watchingUrls.remove(item);
+                });
+              },
+              child: Container(
+                width: MediaQuery.of(context).size.width / 2 - 50,
+                color: Colors.transparent,
+                // child: Center(child: VideoPlayer(item.getController())),
+              ),
             ),
-          ),
-        ],
+            Positioned(
+              bottom: 20,
+              right: 20,
+              child: IconButton(
+                iconSize: 40,
+                icon: item.playPressed
+                    ? const Icon(Icons.stop_circle)
+                    : const Icon(Icons.play_circle_fill),
+                onPressed: () async {
+                  if (item.playPressed) {
+                    item.stop();
+                    setState(() {
+                      item.playPressed = false;
+                    });
+                  } else {
+                    await item.play();
+                    setState(() {
+                      item.playPressed = true;
+                    });
+                  }
+                },
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -525,6 +486,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     vFile = await controller!.stopVideoRecording();
     recordingsToPlay.setRecordingPath(vFile.path);
+    CustomUrlAudioPlayer customUrlAudioPlayer =
+        CustomUrlAudioPlayer(vFile.path, endSession);
+    addItemToWatchingUrls(customUrlAudioPlayer);
+    customUrlAudioPlayer.initialize();
   }
 
   void endSession() async {
@@ -616,9 +581,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       // uploadToWasabi(vFile.openRead(), await vFile.length());
       CustomUrlAudioPlayer customUrlAudioPlayer =
           CustomUrlAudioPlayer(vFile.path, endSession);
-      setState(() {
-        watchingUrls.add(customUrlAudioPlayer);
-      });
+      addItemToWatchingUrls(customUrlAudioPlayer);
       customUrlAudioPlayer.initialize();
       final v = html.window.document.getElementById('videoPlayer');
       if (v != null) {
@@ -638,13 +601,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   void uploadToWasabi(Stream<Uint8List> fileStream, int delay) async {
     String url = await WasabiUploader().uploadToWasabi(fileStream);
-    CustomUrlAudioPlayer customUrlAudioPlayer =
-        CustomUrlAudioPlayer(url, endSession);
-    setState(() {
-      watchingUrls.add(customUrlAudioPlayer);
-    });
-    customUrlAudioPlayer.initialize();
-    addUrlToFirebase(url, delay);
+    // CustomUrlAudioPlayer customUrlAudioPlayer =
+    //     CustomUrlAudioPlayer(url, endSession);
+    // setState(() {
+    //   watchingUrls.add(customUrlAudioPlayer);
+    // });
+    // customUrlAudioPlayer.initialize();
+    // addUrlToFirebase(url, delay);
   }
 
   void getFirebaseUrls() async {
@@ -657,9 +620,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         CustomUrlAudioPlayer customUrlAudioPlayer =
             CustomUrlAudioPlayer(doc.get("path"), endSession);
         customUrlAudioPlayer.initialize();
-        setState(() {
-          watchingUrls.add(customUrlAudioPlayer);
-        });
+        addItemToWatchingUrls(customUrlAudioPlayer);
       }
     });
   }
@@ -698,6 +659,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       cameraController: controller,
       stopRecording: stopVideoRecording,
       uploadRecording: uploadRecordingToWasabi,
+      itemReoved: itemRemoved,
     );
   }
 
@@ -1272,9 +1234,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     for (Recording recording in selectedValue.recordings) {
       CustomUrlAudioPlayer customUrlAudioPlayer =
           CustomUrlAudioPlayer(recording.url, endSession);
-      setState(() {
-        watchingUrls.add(customUrlAudioPlayer);
-      });
+      addItemToWatchingUrls(customUrlAudioPlayer);
       customUrlAudioPlayer.initialize();
     }
   }
@@ -1337,5 +1297,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 ))
           ])),
     );
+  }
+
+  itemRemoved(CustomUrlAudioPlayer customUrlAudioPlayer) {
+    addItemToWatchingUrls(customUrlAudioPlayer);
+  }
+
+  void addItemToWatchingUrls(CustomUrlAudioPlayer customUrlAudioPlayer) {
+    setState(() {
+      watchingUrls.add(customUrlAudioPlayer);
+      watchingUrls.sort((a, b) => a.path.compareTo(b.path));
+    });
   }
 }
