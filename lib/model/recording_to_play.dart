@@ -13,6 +13,8 @@ class RecordingsToPlay {
 
   int delay = 0;
 
+  bool delaySet = false;
+
   RecordingsToPlay();
 
   addEndFunction(VoidCallback endSession) {
@@ -81,10 +83,10 @@ class RecordingsToPlay {
       songEnded();
     });
     players.add(customPlayer);
-    // customUrlAudioPlayer.initialize();
+    // customPlayer.initialize();
   }
 
-  addCustomPlayer(CustomUrlAudioPlayer player2){
+  addCustomPlayer(CustomUrlAudioPlayer player2) {
     player2.resetVideo();
     players.add(player2);
   }
@@ -101,7 +103,12 @@ class RecordingsToPlay {
   void playVideos() async {
     for (CustomUrlAudioPlayer player in players) {
       await player.play();
-      if (delay == 0){
+      if (!delaySet) {
+        setDelay(DateTime.now().millisecondsSinceEpoch);
+      }
+    }
+    if (players.isEmpty) {
+      if (!delaySet) {
         setDelay(DateTime.now().millisecondsSinceEpoch);
       }
     }
@@ -115,14 +122,14 @@ class RecordingsToPlay {
     return players[index].playWidget();
   }
 
-  void setRecordingPath(String path) {
-    recordingPath = path;
+  void setRecording(CustomUrlAudioPlayer recording) {
+    previousRecordingPlayer = recording;
   }
 
   void addRecordingMadeToRecordings() {
     previousRecordingPlayer = CustomUrlAudioPlayer(recordingPath, () {
       songEnded();
-    });
+    }, delay);
   }
 
   Future<void> playRecording() async {
@@ -136,5 +143,6 @@ class RecordingsToPlay {
 
   void setDelay(int currentTime) {
     delay = currentTime - startTime;
+    delaySet = true;
   }
 }

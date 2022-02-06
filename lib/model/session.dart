@@ -5,6 +5,7 @@ class Session {
   String id;
   String tempo;
   String genre;
+  String subGenre = "";
 
   Session(this.id, this.tempo, this.genre);
 

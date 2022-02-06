@@ -13,32 +13,36 @@ class CustomUrlAudioPlayer {
   late Widget blobPlayer;
   final videoElement = html.VideoElement();
 
+  int delay = 0;
+
   // final VoidCallback songEnded;
 
-  CustomUrlAudioPlayer(String url, VoidCallback songEnded) {
+  CustomUrlAudioPlayer(String url, VoidCallback songEnded, [int delay = 0]) {
     path = url;
+    this.delay = delay;
     _controller = VideoPlayerController.network(url);
     blobPlayer = blobUrlPlayer(
       key: UniqueKey(),
       source: url,
       videoElement: videoElement,
     );
-    _controller.addListener(() {
-      checkVideo(songEnded);
-    });
+    // _controller.addListener(() {
+    //   checkVideo(songEnded);
+    // });
     videoElement.addEventListener('ended', (event) => songEnded());
+    addDelayToStartTime();
   }
 
-  void checkVideo(VoidCallback songEnded) {
-    // Implement your calls inside these conditions' bodies :
-    if (_controller.value.position ==
-        Duration(seconds: 1, minutes: 0, hours: 0)) {}
-
-    if (_controller.value.position >=
-        _controller.value.duration - Duration(seconds: 1)) {
-      songEnded;
-    }
-  }
+  // void checkVideo(VoidCallback songEnded) {
+  //   // Implement your calls inside these conditions' bodies :
+  //   if (_controller.value.position ==
+  //       Duration(seconds: 1, minutes: 0, hours: 0)) {}
+  //
+  //   if (_controller.value.position >=
+  //       _controller.value.duration - Duration(seconds: 1)) {
+  //     songEnded;
+  //   }
+  // }
 
   initialize() async {
     // await _controller.initialize();
@@ -64,11 +68,13 @@ class CustomUrlAudioPlayer {
   }
 
   seek(Duration time) async {
-    videoElement.currentTime = time.inSeconds;
+    videoElement.currentTime = delay / 1000 + time.inMilliseconds / 1000;
   }
 
   Future<Duration?> getCurrentPosition() async {
-    return Future(() => Duration(seconds: videoElement.currentTime.toInt()));
+    return Future(() =>
+        Duration(seconds: videoElement.currentTime.toInt()) -
+        Duration(milliseconds: delay));
   }
 
   Widget getController() {
@@ -78,21 +84,25 @@ class CustomUrlAudioPlayer {
 
   getDuration() async {
     // return _controller.value.duration;
-    return Future(() => Duration(seconds: videoElement.duration.toInt()));
+    return Future(() =>
+        Duration(seconds: videoElement.duration.toInt()) -
+        Duration(milliseconds: delay));
   }
 
   void resetVideo() async {
     // await _controller.pause();
     // await _controller.seekTo(const Duration(seconds: 0));
     videoElement.pause();
-    videoElement.currentTime = 0;
+    videoElement.currentTime = delay / 1000;
   }
 
   Widget playWidget() {
     return blobPlayer;
   }
 
-
+  void addDelayToStartTime() {
+    videoElement.currentTime = delay / 1000;
+  }
 }
 
 class blobUrlPlayer extends StatefulWidget {

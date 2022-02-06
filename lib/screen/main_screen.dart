@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:la_ti/custom_widgets/song_grid.dart';
+import 'package:la_ti/custom_widgets/jammin_session.dart';
 import 'package:la_ti/model/custom_url_audio_player.dart';
 import 'package:la_ti/model/recording.dart';
 import 'package:la_ti/model/recording_to_play.dart';
@@ -20,15 +20,6 @@ import 'package:la_ti/model/suggestions.dart';
 import 'package:la_ti/utils/wasabi_uploader.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:video_player/video_player.dart';
-
-// List<CameraDescription> cameras;
-
-List<String> _items = [
-  "https://firebasestorage.googleapis.com/v0/b/auditech-877eb.appspot.com/o/%D7%AA%D7%95%D7%A4%D7%99%D7%9D%20%D7%9E%D7%A1%D7%95%D7%A0%D7%9B%D7%A8%D7%9F%201.mp4?alt=media&token=5099e210-bd0b-4d1d-9b70-92a17ee9aa71",
-  "https://firebasestorage.googleapis.com/v0/b/auditech-877eb.appspot.com/o/Linkin%20Park%20-%20In%20The%20End%20(Vocal%20Track%20Only).mp4?alt=media&token=469c8310-ee43-4a0c-990a-8774a9c94fe7",
-  // "https://firebasestorage.googleapis.com/v0/b/auditech-877eb.appspot.com/o/VID_20200907_153553.mp4?alt=media&token=1c7a6c63-66b0-4c46-8bb4-c9b6f0bf6f29",
-  // "https://firebasestorage.googleapis.com/v0/b/auditech-877eb.appspot.com/o/VID_20201203_225432.mp4?alt=media&token=adbf9212-78e4-416c-b7fe-0accfc5066b9"
-];
 
 class MainScreen extends StatefulWidget {
   MainScreen();
@@ -112,9 +103,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   TextEditingController genreController = TextEditingController();
 
-  TextEditingController tempoController = TextEditingController();
+  TextEditingController subGenreController = TextEditingController();
 
-  var MISSING_TEMPO_CHECKER_ERROR = "You must enter a tempo name and a genre";
+  var MISSING_SUB_GENRE_CHECKER_ERROR =
+      "You must enter a Sub Genre name and a genre";
 
   Song currentSong = Song(name: "", artist: "");
 
@@ -175,7 +167,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (controller != null) controller!.dispose();
     artistController.dispose();
     songNameController.dispose();
-    tempoController.dispose();
+    subGenreController.dispose();
     genreController.dispose();
     super.dispose();
   }
@@ -265,120 +257,58 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         return Future.value(true);
       },
       child: Scaffold(
+          appBar: AppBar(
+            title: Row(
+              children: [
+                Text("Laci"),
+                SizedBox(
+                  width: MediaQuery.of(context).size.width / 4,
+                ),
+                if (currentSong.name != "")
+                  Text(
+                    "Title: " + currentSong.name,
+                    style: const TextStyle(color: Colors.blue),
+                  ),
+                const SizedBox(
+                  width: 80,
+                ),
+                if (currentSong.name != "")
+                  Text("Artist: " + currentSong.artist,
+                      style: const TextStyle(color: Colors.blue)),
+              ],
+            ),
+            backgroundColor: Colors.black,
+          ),
           body: Container(
-        // height: MediaQuery.of(context).size.height,
-        // width: MediaQuery.of(context).size.width,
-        decoration: const BoxDecoration(
-            gradient: RadialGradient(
-          center: Alignment.center,
-          radius: 1.3,
-          colors: [
-            Colors.redAccent,
-            Colors.black,
-          ],
-        )),
-        child: Column(
-          children: [
-            SizedBox(
-              width: MediaQuery.of(context).size.width,
-              height: 48,
-              child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    const SizedBox(
-                      width: 15,
-                    ),
-                    Text(
-                      "Title: " + currentSong.name,
-                      style: const TextStyle(color: Colors.blue),
-                    ),
-                    Text("Artist: " + currentSong.artist,
-                        style: const TextStyle(color: Colors.blue)),
-                    Flexible(
-                      child: RichText(
-                        text: TextSpan(children: [
-                          TextSpan(
-                              text: "Record Video",
-                              style: const TextStyle(
-                                color: Colors.white,
-                              ),
-                              recognizer: TapGestureRecognizer()
-                                ..onTap = () {
-                                  setState(() {
-                                    recordVideo = !recordVideo;
-                                    if (recordVideo) {
-                                      recordAudio = true;
-                                    }
-                                  });
-                                }),
-                        ]),
-                      ),
-                    ),
-                    Theme(
-                      data: ThemeData(unselectedWidgetColor: Colors.red),
-                      child: Checkbox(
-                        //    <-- label
-                        value: recordVideo,
-                        onChanged: (newValue) {
-                          setState(() {
-                            recordVideo = !recordVideo;
-                            if (recordVideo) {
-                              recordAudio = true;
-                            }
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(
-                      width: 25,
-                    ),
-                    Flexible(
-                      child: RichText(
-                        text: TextSpan(children: [
-                          TextSpan(
-                              text: "Record Audio",
-                              style: const TextStyle(
-                                color: Colors.white,
-                              ),
-                              recognizer: TapGestureRecognizer()
-                                ..onTap = () {
-                                  setState(() {
-                                    recordAudio = !recordAudio;
-                                  });
-                                }),
-                        ]),
-                      ),
-                    ),
-                    Theme(
-                      data: ThemeData(unselectedWidgetColor: Colors.red),
-                      child: Checkbox(
-                        //    <-- label
-                        value: recordAudio,
-                        onChanged: (newValue) {
-                          setState(() {
-                            recordAudio = !recordAudio;
-                          });
-                        },
-                      ),
-                    )
-                  ]),
+            // height: MediaQuery.of(context).size.height,
+            // width: MediaQuery.of(context).size.width,
+            decoration: const BoxDecoration(
+                gradient: RadialGradient(
+              center: Alignment.center,
+              radius: 1.3,
+              colors: [
+                Colors.redAccent,
+                Colors.black,
+              ],
+            )),
+            child: Column(
+              children: [
+                Flexible(
+                  child: Row(
+                    children: [
+                      SizedBox(
+                          width: MediaQuery.of(context).size.width / 3,
+                          child: songsSide()),
+                      SizedBox(
+                        child: playSide(),
+                        width: 2 * MediaQuery.of(context).size.width / 3,
+                      )
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Flexible(
-              child: Row(
-                children: [
-                  SizedBox(
-                      width: MediaQuery.of(context).size.width / 3,
-                      child: songsSide()),
-                  SizedBox(
-                    child: playSide(),
-                    width: 2 * MediaQuery.of(context).size.width / 3,
-                  )
-                ],
-              ),
-            ),
-          ],
-        ),
-      )),
+          )),
     ));
   }
 
@@ -485,11 +415,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     });
 
     vFile = await controller!.stopVideoRecording();
-    recordingsToPlay.setRecordingPath(vFile.path);
+
     CustomUrlAudioPlayer customUrlAudioPlayer =
-        CustomUrlAudioPlayer(vFile.path, endSession);
-    addItemToWatchingUrls(customUrlAudioPlayer);
-    customUrlAudioPlayer.initialize();
+        CustomUrlAudioPlayer(vFile.path, endSession, recordingsToPlay.delay);
+    // addItemToWatchingUrls(customUrlAudioPlayer);
+    recordingsToPlay.setRecording(customUrlAudioPlayer);
+    // customUrlAudioPlayer.initialize();
   }
 
   void endSession() async {
@@ -572,7 +503,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   void uploadRecordingToWasabi() async {
-    print("reached here");
     uploadToWasabi(vFile.openRead(), await vFile.length());
   }
 
@@ -607,7 +537,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     //   watchingUrls.add(customUrlAudioPlayer);
     // });
     // customUrlAudioPlayer.initialize();
-    // addUrlToFirebase(url, delay);
+    addUrlToFirebase(url, delay);
   }
 
   void getFirebaseUrls() async {
@@ -615,11 +545,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         .collection('urls')
         .get()
         .then((QuerySnapshot querySnapshot) {
-      print(querySnapshot.docs.length);
       for (var doc in querySnapshot.docs) {
         CustomUrlAudioPlayer customUrlAudioPlayer =
-            CustomUrlAudioPlayer(doc.get("path"), endSession);
-        customUrlAudioPlayer.initialize();
+            CustomUrlAudioPlayer(doc.get("path"), endSession, doc.get("delay"));
         addItemToWatchingUrls(customUrlAudioPlayer);
       }
     });
@@ -652,10 +580,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   playSide() {
-    return SongGrid(
+    return JammingSession(
       cameraWidget: _cameraPreviewWidget(),
       recordingsToPlay: recordingsToPlay,
-      recordVideo: recordVideo,
       cameraController: controller,
       stopRecording: stopVideoRecording,
       uploadRecording: uploadRecordingToWasabi,
@@ -982,7 +909,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   bool inputCorrect(bool sessionChecker) {
     if ((sessionChecker &&
-            tempoController.text != "" &&
+            subGenreController.text != "" &&
             genreController.text != "") ||
         (!sessionChecker &&
             songNameController.text != "" &&
@@ -991,7 +918,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     } else {
       setState(() {
         errorMessage = sessionChecker
-            ? MISSING_TEMPO_CHECKER_ERROR
+            ? MISSING_SUB_GENRE_CHECKER_ERROR
             : MISSING_SONG_FIELD_ERROR;
       });
       return false;
@@ -1021,7 +948,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         .collection('songs')
         .doc(id)
         .collection("sessions")
-        .add({"tempo": tempoController.text, "genre": genreController.text});
+        .add({
+      "subGenre": subGenreController.text,
+      "genre": genreController.text
+    });
     setState(() {
       addSessionToCurrentSong = false;
       addSession = false;
@@ -1076,9 +1006,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             child: TextField(
               style: const TextStyle(color: Colors.black),
               textAlign: TextAlign.center,
-              controller: tempoController,
+              controller: subGenreController,
               decoration: const InputDecoration(
-                hintText: "Tempo",
+                hintText: "Sub Genre",
                 hintStyle: TextStyle(color: Colors.grey),
                 fillColor: Colors.transparent,
               ),
@@ -1112,7 +1042,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   void resetControllers() {
     artistController.text = "";
-    tempoController.text = "";
+    subGenreController.text = "";
     genreController.text = "";
     songNameController.text = "";
   }
@@ -1132,7 +1062,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         .then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.forEach((doc) {
         Session newSession =
-            Session(doc.id, doc.get("tempo"), doc.get("genre"));
+            Session(doc.id, doc.get("subGenre"), doc.get("genre"));
         try {
           FirebaseFirestore.instance
               .collection('songs')
@@ -1143,7 +1073,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               .get()
               .then((QuerySnapshot querySnapshot2) {
             querySnapshot2.docs.forEach((doc2) {
-              newSession.addRecording(Recording(doc2.get("url")));
+              newSession
+                  .addRecording(Recording(doc2.get("url"), doc2.get("delay")));
             });
           });
         } catch (exception) {}
@@ -1180,7 +1111,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 .map((item) => DropdownMenuItem<Session>(
                       value: item,
                       child: Text(
-                        "Genre: " + item.genre + " Tempo: " + item.tempo,
+                        "Genre: " + item.genre + " Sub Genre: " + item.subGenre,
                         style: const TextStyle(
                           fontSize: 14,
                         ),
@@ -1233,9 +1164,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     });
     for (Recording recording in selectedValue.recordings) {
       CustomUrlAudioPlayer customUrlAudioPlayer =
-          CustomUrlAudioPlayer(recording.url, endSession);
+          CustomUrlAudioPlayer(recording.url, endSession, recording.delay);
       addItemToWatchingUrls(customUrlAudioPlayer);
-      customUrlAudioPlayer.initialize();
     }
   }
 
@@ -1246,9 +1176,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         .collection('songs')
         .doc(currentSong.getId())
         .collection("sessions")
-        .add({"tempo": tempoController.text, "genre": genreController.text});
+        .add({
+      "subGenre": subGenreController.text,
+      "genre": genreController.text
+    });
     Session newSession =
-        Session(docRef.id, tempoController.text, genreController.text);
+        Session(docRef.id, subGenreController.text, genreController.text);
     setState(() {
       watchingUrls.clear();
       currentSong.addSession(newSession);
