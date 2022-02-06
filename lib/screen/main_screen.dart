@@ -656,20 +656,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     },
                   ),
                 ),
-                Align(
-                  alignment: Alignment.centerLeft,
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            focusOnBottom = !focusOnBottom;
-                          });
-                        },
-                        icon: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                        )),
+                    child: Icon(
+                      Icons.search,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 Align(
@@ -772,14 +766,31 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         const SizedBox(
           height: 10,
         ),
-        TextButton(
-            style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.green)),
-            onPressed: () => continueWithAddingSong(),
-            child: const Text(
-              "Continue",
-              style: TextStyle(color: Colors.white),
-            )),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            TextButton(
+                style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.green)),
+                onPressed: () => continueWithAddingSong(),
+                child: const Text(
+                  "Continue",
+                  style: TextStyle(color: Colors.white),
+                )),
+            TextButton(
+                style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.red)),
+                onPressed: () => setState(() {
+                      focusOnBottom = false;
+                      focusOnSearch = false;
+                      resetControllers();
+                    }),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.white),
+                )),
+          ],
+        ),
         const SizedBox(
           height: 10,
         ),
@@ -810,7 +821,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               builder: (context, suggestionsSnap) {
                 if (suggestionsSnap.connectionState == ConnectionState.none &&
                     suggestionsSnap.hasData) {
-                  //print('project snapshot data is: ${projectSnap.data}');
                   return Container();
                 } else if (suggestionsSnap.connectionState ==
                     ConnectionState.waiting) {
@@ -818,51 +828,73 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 } else {
                   List<Suggestion> suggestions =
                       suggestionsSnap.data as List<Suggestion>;
-                  // if (suggestions.isEmpty) {
-                  //   setState(() {
-                  //     addOption = true;
-                  //   });
-                  // }
-                  return ListView.builder(
-                    itemCount: suggestions.length,
-                    itemBuilder: (context, index) {
-                      Suggestion suggestion = suggestions[index];
-                      return Column(
+                  if (suggestions.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 70, horizontal: 0),
+                      child: Column(
                         children: [
+                          const Text("No songs match your search"),
                           FocusableActionDetector(
                             onShowHoverHighlight: _handleHoveHighlight,
                             child: TextButton(
                                 onPressed: () {
-                                  getSongFromFirebase(suggestion);
                                   setState(() {
-                                    focusOnSearch = false;
-                                    focusOnBottom = false;
+                                    focusOnBottom = !focusOnBottom;
+                                    songNameController.text =
+                                        searchController.text;
+                                    hovering = false;
                                   });
                                 },
-                                child: RichText(
-                                  text: TextSpan(
-                                    text: suggestion.songName,
-                                    style: const TextStyle(
-                                        color: Colors.blue,
-                                        fontWeight: FontWeight.bold),
-                                    children: <TextSpan>[
-                                      const TextSpan(
-                                          text: ' by  ',
-                                          style: TextStyle(
-                                              fontStyle: FontStyle.italic)),
-                                      TextSpan(
-                                          text: suggestion.songArtist,
-                                          style: const TextStyle(
-                                              color: Colors.blueAccent,
-                                              fontStyle: FontStyle.italic)),
-                                    ],
-                                  ),
-                                )),
+                                child:
+                                    const Text("To add a new song click here")),
                           )
                         ],
-                      );
-                    },
-                  );
+                      ),
+                    );
+                  } else {
+                    return ListView.builder(
+                      itemCount: suggestions.length,
+                      itemBuilder: (context, index) {
+                        Suggestion suggestion = suggestions[index];
+                        return Column(
+                          children: [
+                            FocusableActionDetector(
+                              onShowHoverHighlight: _handleHoveHighlight,
+                              child: TextButton(
+                                  onPressed: () {
+                                    getSongFromFirebase(suggestion);
+                                    setState(() {
+                                      focusOnSearch = false;
+                                      focusOnBottom = false;
+                                      hovering = false;
+                                    });
+                                  },
+                                  child: RichText(
+                                    text: TextSpan(
+                                      text: suggestion.songName,
+                                      style: const TextStyle(
+                                          color: Colors.blue,
+                                          fontWeight: FontWeight.bold),
+                                      children: <TextSpan>[
+                                        const TextSpan(
+                                            text: ' -  ',
+                                            style: TextStyle(
+                                                fontStyle: FontStyle.italic)),
+                                        TextSpan(
+                                            text: suggestion.songArtist,
+                                            style: const TextStyle(
+                                                color: Colors.blueAccent,
+                                                fontStyle: FontStyle.italic)),
+                                      ],
+                                    ),
+                                  )),
+                            )
+                          ],
+                        );
+                      },
+                    );
+                  }
                 }
               },
               future: getSuggestions(),
@@ -1018,14 +1050,31 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         const SizedBox(
           height: 10,
         ),
-        TextButton(
-            style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.green)),
-            onPressed: () => checkSessionAndUpdate(),
-            child: Text(
-              addSessionToCurrentSong ? "Add Session" : "Add Song",
-              style: TextStyle(color: Colors.white),
-            )),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            TextButton(
+                style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.green)),
+                onPressed: () => checkSessionAndUpdate(),
+                child: Text(
+                  addSessionToCurrentSong ? "Add Session" : "Add Song",
+                  style: TextStyle(color: Colors.white),
+                )),
+            TextButton(
+                style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.red)),
+                onPressed: () => setState(() {
+                      focusOnBottom = false;
+                      focusOnSearch = false;
+                      resetControllers();
+                    }),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.white),
+                )),
+          ],
+        ),
         const SizedBox(
           height: 10,
         ),
