@@ -135,11 +135,18 @@ class _JammingSessionState extends State<JammingSession> {
                       SafeArea(
                           child: IconButton(
                         onPressed: () async {
-                          setState(() {
-                            widget.itemReoved(
-                                widget.recordingsToPlay.players[index - 1]);
-                            widget.recordingsToPlay.removePlayer(index - 1);
-                          });
+                          bool problematicRemoval =
+                              index < widget.recordingsToPlay.players.length &&
+                                  songStarted;
+                          if (problematicRemoval) {
+                            removeProblematicVideo(index);
+                          } else {
+                            setState(() {
+                              widget.itemReoved(
+                                  widget.recordingsToPlay.players[index - 1]);
+                              widget.recordingsToPlay.removePlayer(index - 1);
+                            });
+                          }
                         },
                         icon: const Icon(
                           Icons.remove_circle,
@@ -185,7 +192,7 @@ class _JammingSessionState extends State<JammingSession> {
       songStarted = true;
     });
     Wakelock.enable;
-    widget.recordingsToPlay.playVideos();
+    await widget.recordingsToPlay.playVideos(recordVideo);
     if (widget.recordingsToPlay.isEmpty()) {
       timer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) {
         setState(() {
@@ -196,7 +203,6 @@ class _JammingSessionState extends State<JammingSession> {
       timer =
           Timer.periodic(const Duration(milliseconds: 100), (Timer t) async {
         _progressValue = await widget.recordingsToPlay.getCurrentPosition();
-        // (await playingUrls[0].getCurrentPosition())!;
         setState(() {});
         songLength = await widget.recordingsToPlay.getSongLength();
         setState(() {});
@@ -205,6 +211,7 @@ class _JammingSessionState extends State<JammingSession> {
   }
 
   void endSession() async {
+    await Wakelock.disable();
     if (timer.isActive) {
       timer.cancel();
     }
@@ -219,6 +226,7 @@ class _JammingSessionState extends State<JammingSession> {
       widget.recordingsToPlay.previousRecordingPlayer.resetVideo();
     }
     setState(() {
+      _progressValue = const Duration(seconds: 0);
       watching = false;
       isPlaying = false;
       songStarted = false;
@@ -236,11 +244,11 @@ class _JammingSessionState extends State<JammingSession> {
 
   watchRecording() async {
     // widget.recordingsToPlay.addRecordingMadeToRecordings();
+    await Wakelock.enable();
     setState(() {
       watching = true;
     });
-    print(widget.recordingsToPlay.delay);
-    await Future.delayed(Duration(milliseconds: 1000));
+    await Future.delayed(const Duration(milliseconds: 1000));
     await widget.recordingsToPlay.playRecording();
   }
 
@@ -249,6 +257,7 @@ class _JammingSessionState extends State<JammingSession> {
       uploadStarted = true;
     });
     widget.uploadRecording();
+    resetScreen();
   }
 
   aboveProgressBar() {
@@ -396,12 +405,7 @@ class _JammingSessionState extends State<JammingSession> {
         TextButton(
           onPressed: () async {
             // await widget.cameraController!.initialize();
-            //todo reset all parameters
-            widget.recordingsToPlay.delaySet = false;
-            setState(() {
-              songEnded = false;
-              watching = false;
-            });
+            resetScreen();
           },
           child: const Text(
             "Reset",
@@ -412,5 +416,40 @@ class _JammingSessionState extends State<JammingSession> {
         ),
       ],
     );
+  }
+
+  void resetScreen() {
+    //todo reset all parameters
+    widget.recordingsToPlay.delaySet = false;
+    widget.recordingsToPlay.delay = 0;
+    setState(() {
+      songEnded = false;
+      watching = false;
+    });
+  }
+
+  removeVideo(int index) async {
+    await widget.itemReoved(widget.recordingsToPlay.players[index - 1]);
+    await widget.recordingsToPlay.removePlayer(index - 1, true);
+    setState(() {});
+  }
+
+  void removeProblematicVideo(int index) async {
+    Duration currentPosition = const Duration(seconds: 0);
+    timer.cancel();
+    await Future.delayed(const Duration(seconds: 1));
+    await widget.recordingsToPlay.players[index - 1].pause();
+    currentPosition = await widget.recordingsToPlay.getCurrentPosition();
+    await removeVideo(index);
+    if (widget.recordingsToPlay.players.isNotEmpty) {
+      widget.recordingsToPlay.pauseVideo();
+      await Future.delayed(const Duration(milliseconds: 500));
+      startSession();
+      await Future.delayed(const Duration(milliseconds: 500));
+      widget.recordingsToPlay.setAllPlayersToAppropriateSecond(currentPosition);
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      widget.recordingsToPlay.playVideos(false);
+    }
   }
 }

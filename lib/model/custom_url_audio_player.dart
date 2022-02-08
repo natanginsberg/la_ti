@@ -3,24 +3,28 @@ import 'dart:ui' as ui;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:video_player/video_player.dart';
 
 class CustomUrlAudioPlayer {
   AudioPlayer audioPlayer = AudioPlayer();
   late String path;
-  late VideoPlayerController _controller;
+
+  // late VideoPlayerController _controller;
   bool playPressed = false;
   late Widget blobPlayer;
   final videoElement = html.VideoElement();
 
   int delay = 0;
 
+  bool paused = true;
+
+  bool playing = false;
+
   // final VoidCallback songEnded;
 
   CustomUrlAudioPlayer(String url, VoidCallback songEnded, [int delay = 0]) {
     path = url;
     this.delay = delay;
-    _controller = VideoPlayerController.network(url);
+    // _controller = VideoPlayerController.network(url);
     blobPlayer = blobUrlPlayer(
       key: UniqueKey(),
       source: url,
@@ -30,7 +34,24 @@ class CustomUrlAudioPlayer {
     //   checkVideo(songEnded);
     // });
     videoElement.addEventListener('ended', (event) => songEnded());
-    addDelayToStartTime();
+    videoElement.addEventListener('playing', (event) => {playing = true});
+    videoElement.addEventListener('pause', (event) => {playing = false});
+    videoElement.addEventListener('loadedmetadata', (event) {
+      // print("meta data loaded")
+      // if (videoElement.duration.toString() == 'Infinity')
+      //   {
+      //     videoElement.currentTime = 1e10;
+      videoElement.currentTime = delay / 1000;
+      print("this is the current time " +
+          videoElement.currentTime.toString() +
+          " and this the delay " +
+          delay.toString());
+      // console.log('The duration and dimensions ' + '
+      // of the media and tracks are now known. ');
+      // }
+    });
+
+    // addDelayToStartTime();
   }
 
   // void checkVideo(VoidCallback songEnded) {
@@ -49,7 +70,9 @@ class CustomUrlAudioPlayer {
   }
 
   play() async {
-    videoElement.play();
+    if (!playing) {
+      videoElement.play();
+    }
   }
 
   stop() async {
@@ -57,14 +80,16 @@ class CustomUrlAudioPlayer {
   }
 
   pause() async {
-    videoElement.pause();
+    if (playing) {
+      videoElement.pause();
+    }
   }
 
   removeAudioPlayer() async {
     // await audioPlayer.release();
     // await audioPlayer.dispose();
-    if (_controller.value.isPlaying) await _controller.pause();
-    await _controller.dispose();
+    // if (_controller.value.isPlaying) await _controller.pause();
+    // await _controller.dispose();
   }
 
   seek(Duration time) async {
@@ -89,7 +114,7 @@ class CustomUrlAudioPlayer {
         Duration(milliseconds: delay));
   }
 
-  void resetVideo() async {
+  Future<void> resetVideo() async {
     // await _controller.pause();
     // await _controller.seekTo(const Duration(seconds: 0));
     videoElement.pause();
@@ -100,8 +125,11 @@ class CustomUrlAudioPlayer {
     return blobPlayer;
   }
 
-  void addDelayToStartTime() {
+  void addDelayToStartTime() async {
+    // await play();
     videoElement.currentTime = delay / 1000;
+    // await Future.delayed(Duration(milliseconds: 1000));
+    // videoElement.pause();
   }
 }
 

@@ -287,7 +287,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               center: Alignment.center,
               radius: 1.3,
               colors: [
-                Colors.redAccent,
+                Colors.tealAccent,
                 Colors.black,
               ],
             )),
@@ -350,13 +350,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     item.getController()),
             GestureDetector(
               onTap: () async {
-                pauseAudio();
-                recordingsToPlay.resetRecordings();
-                setState(() {
-                  // playingUrls.add(customPlayer);
-                  recordingsToPlay.addCustomPlayer(item);
-                  watchingUrls.remove(item);
-                });
+                recordingsToPlay.addCustomPlayer(item);
+                watchingUrls.remove(item);
+                setState(() {});
               },
               child: Container(
                 width: MediaQuery.of(context).size.width / 2 - 50,
@@ -503,7 +499,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   void uploadRecordingToWasabi() async {
-    uploadToWasabi(vFile.openRead(), await vFile.length());
+    uploadToWasabi(vFile.openRead(), recordingsToPlay.delay);
+    CustomUrlAudioPlayer customUrlAudioPlayer =
+        CustomUrlAudioPlayer(vFile.path, endSession, recordingsToPlay.delay);
+    setState(() {
+      watchingUrls.add(customUrlAudioPlayer);
+    });
   }
 
   void playVideo(String atUrl) async {
@@ -531,12 +532,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   void uploadToWasabi(Stream<Uint8List> fileStream, int delay) async {
     String url = await WasabiUploader().uploadToWasabi(fileStream);
-    // CustomUrlAudioPlayer customUrlAudioPlayer =
-    //     CustomUrlAudioPlayer(url, endSession);
-    // setState(() {
-    //   watchingUrls.add(customUrlAudioPlayer);
-    // });
-    // customUrlAudioPlayer.initialize();
     addUrlToFirebase(url, delay);
   }
 
@@ -1283,6 +1278,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   itemRemoved(CustomUrlAudioPlayer customUrlAudioPlayer) {
     addItemToWatchingUrls(customUrlAudioPlayer);
+    // recordingsToPlay.removeCustomPlayer(customUrlAudioPlayer);
   }
 
   void addItemToWatchingUrls(CustomUrlAudioPlayer customUrlAudioPlayer) {
