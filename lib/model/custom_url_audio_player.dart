@@ -42,10 +42,10 @@ class CustomUrlAudioPlayer {
       //   {
       //     videoElement.currentTime = 1e10;
       videoElement.currentTime = delay / 1000;
-      print("this is the current time " +
-          videoElement.currentTime.toString() +
-          " and this the delay " +
-          delay.toString());
+      // print("this is the current time " +
+      //     videoElement.currentTime.toString() +
+      //     " and this the delay " +
+      //     delay.toString());
       // console.log('The duration and dimensions ' + '
       // of the media and tracks are now known. ');
       // }

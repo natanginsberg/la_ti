@@ -421,7 +421,6 @@ class _JammingSessionState extends State<JammingSession> {
   void resetScreen() {
     //todo reset all parameters
     widget.recordingsToPlay.delaySet = false;
-    widget.recordingsToPlay.delay = 0;
     setState(() {
       songEnded = false;
       watching = false;

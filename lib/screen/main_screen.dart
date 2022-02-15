@@ -5,11 +5,10 @@ import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 import 'package:la_ti/custom_widgets/jammin_session.dart';
 import 'package:la_ti/model/custom_url_audio_player.dart';
 import 'package:la_ti/model/recording.dart';
@@ -260,7 +259,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           appBar: AppBar(
             title: Row(
               children: [
-                Text("Laci"),
+                const Text("La-Ci"),
                 SizedBox(
                   width: MediaQuery.of(context).size.width / 4,
                 ),
@@ -275,6 +274,41 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 if (currentSong.name != "")
                   Text("Artist: " + currentSong.artist,
                       style: const TextStyle(color: Colors.blue)),
+                const Expanded(
+                  child: SizedBox(
+                    width: 10,
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final result =
+                        await Navigator.pushNamed(context, '/signIn');
+                    if (result != null) {
+                      final User user = result as User;
+                      Navigator.pushNamed(context, '/personalScreen',
+                          arguments: user);
+                    }
+                  },
+                  child: const Text(
+                    "Personal Section",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                const SizedBox(
+                  width: 10,
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      FirebaseAuth.instance.signOut();
+                    },
+                    child: const Text(
+                      "Sign Out",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                )
               ],
             ),
             backgroundColor: Colors.black,
@@ -397,14 +431,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     recordingsToPlay.pauseVideo();
   }
 
-  // getCurrentPosition() async {
-  //   // int position = await playingUrls[0].getCurrentPosition();
-  //   // print("this is the current position " + position.toString());
-  //   // return Duration(milliseconds: position);
-  //   Duration? d = await playingUrls[0].getCurrentPosition();
-  //   return d;
-  // }
-
   stopVideoRecording() async {
     setState(() {
       songFinished = true;
@@ -432,107 +458,25 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     setState(() {
       addUrlText = "לפני פתיחה";
     });
-    if (recordVideo) {
-      calculateDelay();
-      playVideo(videoFile.name);
-      // await openPlaybackDialog();
-    }
-  }
-
-  // stopVideos() async {
-  //   print("stopped");
-  //   for (CustomUrlAudioPlayer player in playingUrls) {
-  //     await player.stop();
-  //   }
-  // }
-
-  // void resetRecordings() async {
-  //   for (CustomUrlAudioPlayer player in playingUrls) {
-  //     await player.seek(const Duration(seconds: 0));
-  //   }
-  // }
-
-  void calculateDelay() async {
-    // playbackController = VideoPlayerController
-    // .(videoFile);
-    // await playbackController.initialize();
-    // delay = (playbackController.value.duration - songLength);
-    // await playbackController.seekTo(delay);
-    // print("this is the delay " + delay.inMilliseconds.toString()
-    // );
-  }
-
-  Future<void> openPlaybackDialog() {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Outstanding'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: const <Widget>[
-                Text('Would you like to watch your session?'),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Yes'),
-              onPressed: () {
-                // setState(() {
-                //   watchingSession = true;
-                // });
-                playVideo(videoFile.name);
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('No'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void uploadRecordingToWasabi() async {
-    uploadToWasabi(vFile.openRead(), recordingsToPlay.delay);
-    CustomUrlAudioPlayer customUrlAudioPlayer =
-        CustomUrlAudioPlayer(vFile.path, endSession, recordingsToPlay.delay);
-    setState(() {
-      watchingUrls.add(customUrlAudioPlayer);
-    });
-  }
-
-  void playVideo(String atUrl) async {
-    if (kIsWeb) {
-      // uploadToWasabi(vFile.openRead(), await vFile.length());
+    final result = await Navigator.pushNamed(context, '/signIn');
+    if (result != null) {
+      final User user = result as User;
+      uploadToWasabi(vFile.openRead(), recordingsToPlay.delay, user);
       CustomUrlAudioPlayer customUrlAudioPlayer =
-          CustomUrlAudioPlayer(vFile.path, endSession);
-      addItemToWatchingUrls(customUrlAudioPlayer);
-      customUrlAudioPlayer.initialize();
-      final v = html.window.document.getElementById('videoPlayer');
-      if (v != null) {
-        v.setInnerHtml('<source type="video/mp4" src="$atUrl">',
-            validator: html.NodeValidatorBuilder()
-              ..allowElement('source', attributes: ['src', 'type']));
-        final a = html.window.document.getElementById('triggerVideoPlayer');
-        if (a != null) {
-          a.dispatchEvent(html.MouseEvent('click'));
-        }
-      }
-    } else {
-      // we're not on the web platform
-      // and should use the video_player package
+          CustomUrlAudioPlayer(vFile.path, endSession, recordingsToPlay.delay);
+      setState(() {
+        watchingUrls.add(customUrlAudioPlayer);
+      });
     }
   }
 
-  void uploadToWasabi(Stream<Uint8List> fileStream, int delay) async {
+  void uploadToWasabi(
+      Stream<Uint8List> fileStream, int delay, User user) async {
     String url = await WasabiUploader().uploadToWasabi(fileStream);
-    addUrlToFirebase(url, delay);
+    addUrlToFirebase(url, delay, user);
   }
 
   void getFirebaseUrls() async {
@@ -548,11 +492,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     });
   }
 
-  void addUrlToFirebase(String value, int delay) async {
-    FirebaseFirestore.instance
-        .collection('urls')
-        .add({"path": value, "delay": delay});
+  void addUrlToFirebase(String value, int delay, User user) async {
+    String formattedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    Map<String, dynamic> recordingData = {
+      "url": value,
+      "delay": delay,
+      "userUploadId": user.uid,
+      "userUploadEmail": user.email,
+      "dateUploaded": formattedDate
+    };
+    FirebaseFirestore.instance.collection('urls').add(recordingData);
     if (currentSong.name != "") {
+      // add document to songs
       await FirebaseFirestore.instance
           .collection('songs')
           .doc(currentSong.getId())
@@ -560,17 +511,41 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           .doc(currentSong.currentSession.id)
           .collection("recordings")
           .doc()
-          .set({"url": value, "delay": delay});
+          .set(recordingData);
+      // add doc to user for user docs
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .collection("recordings")
+          .doc()
+          .set({
+        'songName': currentSong.name,
+        'songArtist': currentSong.artist,
+        'songId': currentSong.getId(),
+        'sessionId': currentSong.currentSession.id,
+        'url': value,
+        "dateUploaded": formattedDate
+      });
     }
   }
 
   pickAndUploadFiles() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    final signInResult = await Navigator.pushNamed(context, '/signIn');
+    if (signInResult != null) {
+      final User user = signInResult as User;
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
 
-    if (result != null) {
-      Uint8List? fileBytes = result.files.first.bytes;
-      Future<Uint8List> fileStream = Future(() => fileBytes!);
-      uploadToWasabi(Stream.fromFuture(fileStream), 0);
+      if (result != null) {
+        Uint8List? fileBytes = result.files.first.bytes;
+        Future<Uint8List> fileStream = Future(() => fileBytes!);
+        uploadToWasabi(Stream.fromFuture(fileStream), 0, user);
+        // adding the uploaded file to playing options
+        CustomUrlAudioPlayer customUrlAudioPlayer =
+            CustomUrlAudioPlayer(result.files.first.path!, endSession, 0);
+        setState(() {
+          watchingUrls.add(customUrlAudioPlayer);
+        });
+      }
     }
   }
 
@@ -1116,18 +1091,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               .collection("recordings")
               .get()
               .then((QuerySnapshot querySnapshot2) {
-            querySnapshot2.docs.forEach((doc2) {
+            for (var doc2 in querySnapshot2.docs) {
               newSession
                   .addRecording(Recording(doc2.get("url"), doc2.get("delay")));
-            });
+            }
+            currentSong.addSession(newSession);
+            if (currentSong.sessions.length == 1) {
+              setState(() {
+                selectedValue = currentSong.currentSession;
+              });
+              refreshRecordings();
+            }
           });
         } catch (exception) {}
-        currentSong.addSession(newSession);
-        setState(() {
-          watchingUrls.clear();
-          selectedValue = currentSong.currentSession;
-        });
-        refreshRecordings();
       });
     });
   }
@@ -1144,24 +1120,41 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   }),
               child: const Text("Add a new session")),
           DropdownButton2(
-            // hint: Text(
-            //   'Select Session',
-            //   style: TextStyle(
-            //     fontSize: 14,
-            //     color: Theme.of(context).hintColor,
-            //   ),
-            // ),
             items: currentSong.sessions
                 .map((item) => DropdownMenuItem<Session>(
                       value: item,
-                      child: Text(
-                        "Genre: " + item.genre + " Sub Genre: " + item.subGenre,
-                        style: const TextStyle(
-                          fontSize: 14,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Text(
+                            "Genre: " + item.genre,
+                            style: const TextStyle(
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            "Sub Genre: " + item.subGenre,
+                            style: const TextStyle(
+                              fontSize: 14,
+                            ),
+                          )
+                        ],
                       ),
                     ))
                 .toList(),
+            buttonDecoration: BoxDecoration(
+                color: Colors.lightGreen,
+                //background color of dropdown button
+                border: Border.all(color: Colors.black38, width: 3),
+                //border of dropdown button
+                borderRadius: BorderRadius.circular(20),
+                //border raiuds of dropdown button
+                boxShadow: const <BoxShadow>[
+                  //apply shadow on Dropdown button
+                  BoxShadow(
+                      color: Color.fromRGBO(0, 0, 0, 0.57), //shadow for button
+                      blurRadius: 5) //blur radius of shadow
+                ]),
             value: selectedValue,
             onChanged: (value) {
               setState(() {

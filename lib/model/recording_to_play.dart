@@ -185,7 +185,6 @@ class RecordingsToPlay {
     if (!delaySet) {
       delay = currentTime - startTime;
       delaySet = true;
-      print(delay);
     }
   }
 

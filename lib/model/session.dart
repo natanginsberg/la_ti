@@ -3,11 +3,11 @@ import 'recording.dart';
 class Session {
   List<Recording> recordings = [];
   String id;
-  String tempo;
+  String tempo = "";
   String genre;
-  String subGenre = "";
+  String subGenre;
 
-  Session(this.id, this.tempo, this.genre);
+  Session(this.id, this.subGenre, this.genre);
 
   addRecording(Recording recording) {
     recordings.add(recording);
@@ -17,7 +17,7 @@ class Session {
   bool operator ==(dynamic other) =>
       other != null &&
       other is Session &&
-      this.tempo == other.tempo &&
+      this.subGenre == other.subGenre &&
       this.genre == other.genre;
 
   @override
