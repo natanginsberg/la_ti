@@ -3,11 +3,11 @@ import 'dart:ui';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:la_ti/model/custom_url_audio_player.dart';
-import 'package:la_ti/model/recording_to_play.dart';
 import 'package:wakelock/wakelock.dart';
+
+import '../../utils/main_screen/recording_to_play.dart';
 
 class JammingSession extends StatefulWidget {
   CameraController? cameraController;
@@ -15,20 +15,27 @@ class JammingSession extends StatefulWidget {
 
   Widget cameraWidget;
 
+  VoidCallback incrementJamsUsed;
+
   VoidCallback stopRecording;
 
   VoidCallback uploadRecording;
 
-  Function(CustomUrlAudioPlayer) itemReoved;
+  Function(CustomUrlAudioPlayer) itemRemoved;
 
-  //todo understand how to use the key
+  Function(String, bool) followArtist;
+
   JammingSession(
-      {required this.stopRecording,
+      {Key? key,
+      required this.stopRecording,
       this.cameraController,
       required this.recordingsToPlay,
       required this.cameraWidget,
       required this.uploadRecording,
-      required this.itemReoved});
+      required this.itemRemoved,
+      required this.incrementJamsUsed,
+      required this.followArtist})
+      : super(key: key);
 
   @override
   State<JammingSession> createState() => _JammingSessionState();
@@ -59,6 +66,10 @@ class _JammingSessionState extends State<JammingSession> {
   bool recordVideo = false;
 
   bool recordAudio = false;
+
+  TextEditingController instrumentController = TextEditingController();
+
+  bool instrumentMustBeEntered = false;
 
   @override
   void initState() {
@@ -104,7 +115,13 @@ class _JammingSessionState extends State<JammingSession> {
             mainAxisSpacing: 5),
         itemCount: widget.recordingsToPlay.players.length + 1,
         // playingUrls.length + 1,
+
         itemBuilder: (BuildContext ctx, index) {
+          bool followingMusician = false;
+          if (index > 0) {
+            followingMusician = widget
+                .recordingsToPlay.players[index - 1].recording.userIsFollowing;
+          }
           // print(index);
           return index == 0
               ? Container(
@@ -142,7 +159,7 @@ class _JammingSessionState extends State<JammingSession> {
                             removeProblematicVideo(index);
                           } else {
                             setState(() {
-                              widget.itemReoved(
+                              widget.itemRemoved(
                                   widget.recordingsToPlay.players[index - 1]);
                               widget.recordingsToPlay.removePlayer(index - 1);
                             });
@@ -152,7 +169,20 @@ class _JammingSessionState extends State<JammingSession> {
                           Icons.remove_circle,
                           color: Colors.white,
                         ),
-                      ))
+                      )),
+                      if (!isPlaying)
+                        subscribeButton(
+                            followingMusician,
+                            widget.recordingsToPlay.players[index - 1].recording
+                                .uploaderId),
+                      Positioned(
+                        left: 8,
+                        right: 8,
+                        child: Text(
+                          widget.recordingsToPlay.players[index - 1].lastTime,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      )
                     ],
                   ),
                 );
@@ -160,6 +190,7 @@ class _JammingSessionState extends State<JammingSession> {
   }
 
   playAudio() async {
+    widget.incrementJamsUsed();
     setState(() {
       isPlaying = true;
       songEnded = false;
@@ -202,7 +233,9 @@ class _JammingSessionState extends State<JammingSession> {
     } else {
       timer =
           Timer.periodic(const Duration(milliseconds: 100), (Timer t) async {
-        _progressValue = await widget.recordingsToPlay.getCurrentPosition();
+        double currentPosition = widget.recordingsToPlay.getCurrentPosition();
+        _progressValue =
+            Duration(milliseconds: (currentPosition * 1000).toInt());
         setState(() {});
         songLength = await widget.recordingsToPlay.getSongLength();
         setState(() {});
@@ -253,11 +286,18 @@ class _JammingSessionState extends State<JammingSession> {
   }
 
   startUpload() {
+    // if (instrumentController.text.isNotEmpty) {
     setState(() {
       uploadStarted = true;
     });
+    widget.recordingsToPlay.instrumentPlayed = instrumentController.text;
     widget.uploadRecording();
     resetScreen();
+    // } else {
+    //   setState(() {
+    //     instrumentMustBeEntered = true;
+    //   });
+    // }
   }
 
   aboveProgressBar() {
@@ -421,6 +461,7 @@ class _JammingSessionState extends State<JammingSession> {
   void resetScreen() {
     //todo reset all parameters
     widget.recordingsToPlay.delaySet = false;
+    instrumentController.clear();
     setState(() {
       songEnded = false;
       watching = false;
@@ -428,27 +469,40 @@ class _JammingSessionState extends State<JammingSession> {
   }
 
   removeVideo(int index) async {
-    await widget.itemReoved(widget.recordingsToPlay.players[index - 1]);
+    await widget.itemRemoved(widget.recordingsToPlay.players[index - 1]);
     await widget.recordingsToPlay.removePlayer(index - 1, true);
     setState(() {});
   }
 
   void removeProblematicVideo(int index) async {
-    Duration currentPosition = const Duration(seconds: 0);
-    timer.cancel();
-    await Future.delayed(const Duration(seconds: 1));
-    await widget.recordingsToPlay.players[index - 1].pause();
-    currentPosition = await widget.recordingsToPlay.getCurrentPosition();
     await removeVideo(index);
-    if (widget.recordingsToPlay.players.isNotEmpty) {
-      widget.recordingsToPlay.pauseVideo();
-      await Future.delayed(const Duration(milliseconds: 500));
-      startSession();
-      await Future.delayed(const Duration(milliseconds: 500));
-      widget.recordingsToPlay.setAllPlayersToAppropriateSecond(currentPosition);
-      await Future.delayed(const Duration(milliseconds: 500));
+  }
 
-      widget.recordingsToPlay.playVideos(false);
-    }
+  subscribeButton(bool userIsFollowing, String uploaderId) {
+    return Positioned(
+      bottom: 8,
+      left: 15,
+      right: 15,
+      child: ElevatedButton(
+        onPressed: () async {
+          bool userSignIn = await widget.followArtist(uploaderId, userIsFollowing);
+          widget.recordingsToPlay.changeSubscription(uploaderId);
+          setState(() {});
+        },
+        style: ElevatedButton.styleFrom(
+          primary: Colors.blueAccent,
+          side: const BorderSide(color: Colors.blueAccent),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          elevation: 15.0,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Text(userIsFollowing ? 'Following' : 'Follow Musician',
+              style: const TextStyle(fontSize: 15, color: Colors.white)),
+        ),
+      ),
+    );
   }
 }

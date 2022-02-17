@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:la_ti/model/recording.dart';
 
 class CustomUrlAudioPlayer {
   AudioPlayer audioPlayer = AudioPlayer();
@@ -19,51 +20,59 @@ class CustomUrlAudioPlayer {
 
   bool playing = false;
 
+  late Recording recording;
+
+  String lastTime = "";
+
+  bool firstTime = false;
+
+  double initialSeekTime = 0;
+
+  bool metadataEntered = false;
+
   // final VoidCallback songEnded;
 
-  CustomUrlAudioPlayer(String url, VoidCallback songEnded, [int delay = 0]) {
-    path = url;
+  CustomUrlAudioPlayer(Recording recording, VoidCallback songEnded,
+      [int delay = 0]) {
+    path = recording.url;
     this.delay = delay;
+    this.recording = recording;
     // _controller = VideoPlayerController.network(url);
     blobPlayer = blobUrlPlayer(
       key: UniqueKey(),
-      source: url,
+      source: recording.url,
       videoElement: videoElement,
     );
     // _controller.addListener(() {
     //   checkVideo(songEnded);
     // });
     videoElement.addEventListener('ended', (event) => songEnded());
-    videoElement.addEventListener('playing', (event) => {playing = true});
+    videoElement.addEventListener('playing', (event) {
+      if (firstTime) {
+        videoElement.pause();
+        firstTime = false;
+        videoElement.volume = 1;
+      }
+    });
     videoElement.addEventListener('pause', (event) => {playing = false});
-    videoElement.addEventListener('loadedmetadata', (event) {
+    videoElement.addEventListener('loadedmetadata', (event) async {
       // print("meta data loaded")
       // if (videoElement.duration.toString() == 'Infinity')
       //   {
       //     videoElement.currentTime = 1e10;
+      if (playing) {
+        videoElement.volume = 0;
+        firstTime = true;
+        await videoElement.play();
+      }
+
       videoElement.currentTime = delay / 1000;
-      // print("this is the current time " +
-      //     videoElement.currentTime.toString() +
-      //     " and this the delay " +
-      //     delay.toString());
-      // console.log('The duration and dimensions ' + '
-      // of the media and tracks are now known. ');
-      // }
+      metadataEntered = true;
+      initialSeekTime = 0;
     });
 
     // addDelayToStartTime();
   }
-
-  // void checkVideo(VoidCallback songEnded) {
-  //   // Implement your calls inside these conditions' bodies :
-  //   if (_controller.value.position ==
-  //       Duration(seconds: 1, minutes: 0, hours: 0)) {}
-  //
-  //   if (_controller.value.position >=
-  //       _controller.value.duration - Duration(seconds: 1)) {
-  //     songEnded;
-  //   }
-  // }
 
   initialize() async {
     // await _controller.initialize();
@@ -76,6 +85,7 @@ class CustomUrlAudioPlayer {
   }
 
   stop() async {
+    lastTime = videoElement.currentTime.toString();
     videoElement.pause();
   }
 
@@ -92,14 +102,15 @@ class CustomUrlAudioPlayer {
     // await _controller.dispose();
   }
 
-  seek(Duration time) async {
-    videoElement.currentTime = delay / 1000 + time.inMilliseconds / 1000;
+  seek(double time) async {
+    videoElement.currentTime = delay / 1000 + time;
   }
 
-  Future<Duration?> getCurrentPosition() async {
-    return Future(() =>
-        Duration(seconds: videoElement.currentTime.toInt()) -
-        Duration(milliseconds: delay));
+  double getCurrentPosition() {
+    // return Future(() =>
+    //     Duration(seconds: videoElement.currentTime.toInt()) -
+    //     Duration(milliseconds: delay));
+    return videoElement.currentTime - delay / 1000;
   }
 
   Widget getController() {
@@ -184,11 +195,5 @@ class _blobUrlPlayerState extends State<blobUrlPlayer> {
           widget.source, (int viewId) => widget.videoElement);
       widget.videoElement.pause();
     }
-    // if (widget.state == States.play) {
-    //   videoElement.play();
-    // }
-    // else if (widget.state == States.pause) {
-    //   videoElement.pause();
-    // }
   }
 }

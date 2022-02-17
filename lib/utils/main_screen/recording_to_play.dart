@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:la_ti/model/custom_url_audio_player.dart';
+import 'package:la_ti/model/recording.dart';
 
 class RecordingsToPlay {
   List<CustomUrlAudioPlayer> players = [];
@@ -21,9 +22,11 @@ class RecordingsToPlay {
 
   bool firstPlayerRemoved = false;
 
-  Duration currentTime = const Duration(seconds: 0);
+  double currentTime = 0;
 
   RecordingsToPlay();
+
+  String instrumentPlayed = "";
 
   addEndFunction(VoidCallback endSession) {
     songEnded = endSession;
@@ -36,6 +39,9 @@ class RecordingsToPlay {
   }
 
   stopVideos() async {
+    if (timer != null && timer!.isActive) {
+      timer!.cancel();
+    }
     for (CustomUrlAudioPlayer player in players) {
       await player.stop();
     }
@@ -46,7 +52,7 @@ class RecordingsToPlay {
       await player.pause();
     }
     if (players.isNotEmpty) {
-      Duration? currentTime = await players[0].getCurrentPosition();
+      double currentTime = players[0].getCurrentPosition();
       for (CustomUrlAudioPlayer player in players) {
         if (currentTime != null) await player.seek(currentTime);
       }
@@ -55,18 +61,18 @@ class RecordingsToPlay {
 
   void resetRecordings() async {
     for (CustomUrlAudioPlayer player in players) {
-      await player.seek(const Duration(seconds: 0));
+      await player.seek(0);
     }
   }
 
-  Future<Duration> getCurrentPosition() async {
+  double getCurrentPosition() {
     if (players.isNotEmpty) {
-      Duration d = (await players[0].getCurrentPosition())!;
+      double d = players[0].getCurrentPosition();
       if (!d.isNegative) {
-        return Future(() => d);
+        return d;
       }
     }
-    return Future(() => const Duration(seconds: 0));
+    return 0.0;
   }
 
   isEmpty() {
@@ -84,30 +90,30 @@ class RecordingsToPlay {
     players.clear();
   }
 
-  addPlayer(String path) async {
-    counter++;
-    CustomUrlAudioPlayer customPlayer = CustomUrlAudioPlayer(path, () {
-      songEnded();
-    });
-    players.add(customPlayer);
-    // customPlayer.initialize();
-  }
+  // addPlayer(String path) async {
+  //   counter++;
+  //   CustomUrlAudioPlayer customPlayer = CustomUrlAudioPlayer(Recording(path, )path, () {
+  //     songEnded();
+  //   });
+  //   players.add(customPlayer);
+  //   // customPlayer.initialize();
+  // }
 
   addCustomPlayer(CustomUrlAudioPlayer player2) async {
     await player2.resetVideo();
+    double currentPosition = getCurrentPosition();
+    player2.playing = true;
+    player2.metadataEntered = false;
     players.add(player2);
-    Future.delayed(const Duration(milliseconds: 1500));
-    Duration currentPosition = await getCurrentPosition();
-    print(currentPosition.inMilliseconds);
-    print(players.length);
-    if (currentPosition.inSeconds > 0) {
-      await playVideos(false);
+    if (currentPosition > 0) {
       await stopVideos();
-      await setAllPlayersToAppropriateSecond(currentPosition);
-      await Future.delayed(const Duration(milliseconds: 750));
-      print((await players[players.length - 1].getCurrentPosition())
-          ?.inMilliseconds);
-      playVideos(false);
+      timer = Timer.periodic(const Duration(milliseconds: 10), (Timer t) async {
+        if (player2.metadataEntered) {
+          timer!.cancel();
+          await setAllPlayersToAppropriateSecond(currentPosition);
+          playVideos(false);
+        }
+      });
     }
   }
 
@@ -116,33 +122,44 @@ class RecordingsToPlay {
   }
 
   removePlayer(int index, [bool playing = false]) async {
-    if (index == 0 && playing) {
-      currentTime = await getCurrentPosition();
+    if (timer != null) {
+      timer!.cancel();
     }
+    double currentPosition = 0;
+    if (index < players.length - 1 && playing) {
+      currentPosition = getCurrentPosition();
+    }
+    players[index].playing = false;
     players.removeAt(index);
+    for (CustomUrlAudioPlayer player in players.sublist(index)) {
+      player.metadataEntered = false;
+    }
+    await stopVideos();
     if (index == 0) {
       firstPlayerRemoved = true;
     }
-    print("this sis the recording to play " + players.length.toString());
-  }
-
-  restartOtherPlayers() {
-    if (firstPlayerRemoved) {
-      setAllPlayersToAppropriateSecond(currentTime);
-      playVideos(false);
-      firstPlayerRemoved = false;
-    }
+    timer = Timer.periodic(const Duration(milliseconds: 10), (Timer t) async {
+      if (players.where((element) => !element.metadataEntered).isEmpty) {
+        timer!.cancel();
+        await setAllPlayersToAppropriateSecond(currentPosition);
+        playVideos(false);
+      }
+    });
   }
 
   playVideos(bool record) async {
     for (CustomUrlAudioPlayer player in players) {
+      print(player.videoElement.currentTime);
       await player.play();
       startTimes.add(DateTime.now().millisecondsSinceEpoch);
       if (record && !delaySet) {
         timer =
             Timer.periodic(const Duration(milliseconds: 10), (Timer t) async {
           if (!players[0].videoElement.paused) {
+            timer!.cancel();
             setDelay(DateTime.now().millisecondsSinceEpoch);
+          } else if (players.isEmpty) {
+            timer!.cancel();
           }
         });
       }
@@ -167,7 +184,8 @@ class RecordingsToPlay {
   }
 
   void addRecordingMadeToRecordings() {
-    previousRecordingPlayer = CustomUrlAudioPlayer(recordingPath, () {
+    previousRecordingPlayer =
+        CustomUrlAudioPlayer(Recording(recordingPath, 0, ""), () {
       songEnded();
     }, delay);
   }
@@ -188,7 +206,7 @@ class RecordingsToPlay {
     }
   }
 
-  setAllPlayersToAppropriateSecond(Duration position) {
+  setAllPlayersToAppropriateSecond(double position) {
     for (CustomUrlAudioPlayer player in players) {
       player.seek(position);
     }
@@ -196,5 +214,14 @@ class RecordingsToPlay {
 
   void stopPlayer(int index) {
     players[index].stop();
+  }
+
+  void changeSubscription(String uploaderId) {
+    for (CustomUrlAudioPlayer customUrlAudioPlayer in players) {
+      if (customUrlAudioPlayer.recording.uploaderId == uploaderId) {
+        customUrlAudioPlayer.recording.userIsFollowing =
+            !customUrlAudioPlayer.recording.userIsFollowing;
+      }
+    }
   }
 }

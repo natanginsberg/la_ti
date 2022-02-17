@@ -43,7 +43,7 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
 
   bool canResendEmail = false;
 
-  bool newUser = false;
+  bool newUser = true;
 
   bool forgotPasswordEmailSent = false;
 
@@ -137,6 +137,8 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
                                 onPressed: () {
                                   timer!.cancel();
                                   FirebaseAuth.instance.signOut();
+                                  FirebaseAuth.instance
+                                      .signInAnonymously();
                                   canResendEmail = false;
                                   setState(() {
                                     emailSent = false;
@@ -197,8 +199,7 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
           Padding(
             padding: EdgeInsets.fromLTRB(paddingSize, 0, 0, 0),
             child: const Align(
-                alignment: Alignment.topLeft,
-                child: Text("Enter you user name:")),
+                alignment: Alignment.topLeft, child: Text("Enter you email:")),
           ),
           Container(
             width: MediaQuery.of(context).size.width / 5,
@@ -221,7 +222,7 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
                   textAlign: TextAlign.left,
                   controller: userNameController,
                   decoration: const InputDecoration(
-                    hintText: "User Name",
+                    hintText: "Email",
                     contentPadding: EdgeInsets.all(7),
                     hintStyle: TextStyle(color: Colors.grey),
                     fillColor: Colors.transparent,
@@ -395,10 +396,10 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
 
       await user!.updateDisplayName(displayNameController.text);
 
-      if (user != null) {
-        uid = user.uid;
-        userEmail = user.email!;
-      }
+      // if (user != null) {
+      //   uid = user.uid;
+      //   userEmail = user.email!;
+      // }
 
       await verifyEmail();
     } on FirebaseAuthException catch (e) {
@@ -406,8 +407,10 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
         errorMessage = 'The password provided is too weak.';
       } else if (e.code == 'email-already-in-use') {
         errorMessage = 'The account already exists for that email.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'The email is badly formatted.';
       } else {
-        print("this is the message " + e.message.toString());
+        errorMessage = 'We are experiencing an error. Please try again';
       }
       setState(() {});
     }
