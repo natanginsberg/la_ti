@@ -18,7 +18,7 @@ class RecordingsQueue extends StatefulWidget {
 class _RecordingsQueueState extends State<RecordingsQueue> {
   bool amIHovering = false;
 
-  bool betaTesting = true;
+  bool betaTesting = false;
 
   @override
   Widget build(BuildContext context) {

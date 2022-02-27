@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -516,9 +515,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               )
               // _buildMenuList()
               ),
-          if (currentSong.sessions.isNotEmpty) buildSessionDropdown(),
+          // if (currentSong.sessions.isNotEmpty) buildSessionDropdown(),
           if (currentSong.sessions.isNotEmpty) addSongButton(),
-          if (addSessionToCurrentSong) currentSessionAdder(),
+          // if (addSessionToCurrentSong) currentSessionAdder(),
           searchBar(),
           //scrollOptionIndicator()
           // if (focusOnSearch)
@@ -650,9 +649,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   addSongOption() {
-    if (addSession) {
-      return sessionAdder();
-    }
+    // if (addSession) {
+    //   return sessionAdder();
+    // }
     return Column(
       children: [
         const SizedBox(
@@ -713,7 +712,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     backgroundColor: MaterialStateProperty.all(Colors.green)),
                 onPressed: () => continueWithAddingSong(),
                 child: const Text(
-                  "Continue",
+                  "Add", // "Continue",
                   style: TextStyle(color: Colors.white),
                 )),
             TextButton(
@@ -876,8 +875,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       }
       setState(() {
         errorMessage = "";
-        addSession = true;
+        // addSession = true;
       });
+      addSongToFirebase();
     }
   }
 
@@ -899,15 +899,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  checkSessionAndUpdate() async {
-    if (inputCorrect(true)) {
-      if (addSessionToCurrentSong) {
-        addSessionToFirebase();
-      } else {
-        addSongToFirebase();
-      }
-    }
-  }
+  // checkSessionAndUpdate() async {
+  //   if (inputCorrect(true)) {
+  //     if (addSessionToCurrentSong) {
+  //       addSessionToFirebase();
+  //     } else {
+  //       addSongToFirebase();
+  //     }
+  //   }
+  // }
 
   void addSongToFirebase() async {
     Map<String, String> songToAdd = {
@@ -923,8 +923,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         .doc(id)
         .collection("sessions")
         .add({
-      "subGenre": subGenreController.text,
-      "genre": genreController.text
+      "subGenre": "original", //subGenreController.text,
+      "genre": "original", //genreController.text
     });
     setState(() {
       addSessionToCurrentSong = false;
@@ -936,100 +936,100 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     });
   }
 
-  sessionAdder() {
-    return Column(
-      children: [
-        Center(
-          child: SizedBox(
-              height: 20,
-              child: Text(addSessionToCurrentSong
-                  ? "Add s session"
-                  : "You must add a session to begin")),
-        ),
-        Container(
-          width: MediaQuery.of(context).size.width / 4.2,
-          height: 48,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.blue, width: 2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: TextField(
-              style: const TextStyle(color: Colors.black),
-              textAlign: TextAlign.center,
-              controller: genreController,
-              decoration: const InputDecoration(
-                hintText: "Genre",
-                hintStyle: TextStyle(color: Colors.grey),
-                fillColor: Colors.transparent,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(
-          height: 10,
-        ),
-        Container(
-          width: MediaQuery.of(context).size.width / 4.2,
-          height: 48,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.blue, width: 2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: TextField(
-              style: const TextStyle(color: Colors.black),
-              textAlign: TextAlign.center,
-              controller: subGenreController,
-              decoration: const InputDecoration(
-                hintText: "Sub Genre",
-                hintStyle: TextStyle(color: Colors.grey),
-                fillColor: Colors.transparent,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(
-          height: 10,
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            TextButton(
-                style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all(Colors.green)),
-                onPressed: () => checkSessionAndUpdate(),
-                child: Text(
-                  addSessionToCurrentSong ? "Add Session" : "Add Song",
-                  style: const TextStyle(color: Colors.white),
-                )),
-            TextButton(
-                style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all(Colors.red)),
-                onPressed: () => setState(() {
-                      focusOnBottom = false;
-                      focusOnSearch = false;
-                      resetControllers();
-                    }),
-                child: const Text(
-                  "Cancel",
-                  style: TextStyle(color: Colors.white),
-                )),
-          ],
-        ),
-        const SizedBox(
-          height: 10,
-        ),
-        if (errorMessage != "")
-          Center(
-            child: Text(
-              errorMessage,
-              style: const TextStyle(color: Colors.red),
-            ),
-          )
-      ],
-    );
-  }
+  // sessionAdder() {
+  //   return Column(
+  //     children: [
+  //       Center(
+  //         child: SizedBox(
+  //             height: 20,
+  //             child: Text(addSessionToCurrentSong
+  //                 ? "Add s session"
+  //                 : "You must add a session to begin")),
+  //       ),
+  //       Container(
+  //         width: MediaQuery.of(context).size.width / 4.2,
+  //         height: 48,
+  //         decoration: BoxDecoration(
+  //           border: Border.all(color: Colors.blue, width: 2),
+  //           borderRadius: BorderRadius.circular(8),
+  //         ),
+  //         child: Center(
+  //           child: TextField(
+  //             style: const TextStyle(color: Colors.black),
+  //             textAlign: TextAlign.center,
+  //             controller: genreController,
+  //             decoration: const InputDecoration(
+  //               hintText: "Genre",
+  //               hintStyle: TextStyle(color: Colors.grey),
+  //               fillColor: Colors.transparent,
+  //             ),
+  //           ),
+  //         ),
+  //       ),
+  //       const SizedBox(
+  //         height: 10,
+  //       ),
+  //       Container(
+  //         width: MediaQuery.of(context).size.width / 4.2,
+  //         height: 48,
+  //         decoration: BoxDecoration(
+  //           border: Border.all(color: Colors.blue, width: 2),
+  //           borderRadius: BorderRadius.circular(8),
+  //         ),
+  //         child: Center(
+  //           child: TextField(
+  //             style: const TextStyle(color: Colors.black),
+  //             textAlign: TextAlign.center,
+  //             controller: subGenreController,
+  //             decoration: const InputDecoration(
+  //               hintText: "Sub Genre",
+  //               hintStyle: TextStyle(color: Colors.grey),
+  //               fillColor: Colors.transparent,
+  //             ),
+  //           ),
+  //         ),
+  //       ),
+  //       const SizedBox(
+  //         height: 10,
+  //       ),
+  //       Row(
+  //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  //         children: [
+  //           TextButton(
+  //               style: ButtonStyle(
+  //                   backgroundColor: MaterialStateProperty.all(Colors.green)),
+  //               onPressed: () => checkSessionAndUpdate(),
+  //               child: Text(
+  //                 addSessionToCurrentSong ? "Add Session" : "Add Song",
+  //                 style: const TextStyle(color: Colors.white),
+  //               )),
+  //           TextButton(
+  //               style: ButtonStyle(
+  //                   backgroundColor: MaterialStateProperty.all(Colors.red)),
+  //               onPressed: () => setState(() {
+  //                     focusOnBottom = false;
+  //                     focusOnSearch = false;
+  //                     resetControllers();
+  //                   }),
+  //               child: const Text(
+  //                 "Cancel",
+  //                 style: TextStyle(color: Colors.white),
+  //               )),
+  //         ],
+  //       ),
+  //       const SizedBox(
+  //         height: 10,
+  //       ),
+  //       if (errorMessage != "")
+  //         Center(
+  //           child: Text(
+  //             errorMessage,
+  //             style: const TextStyle(color: Colors.red),
+  //           ),
+  //         )
+  //     ],
+  //   );
+  // }
 
   void resetControllers() {
     artistController.text = "";
@@ -1093,70 +1093,70 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  buildSessionDropdown() {
-    return Positioned(
-      top: 200,
-      height: 50,
-      child: Row(
-        children: [
-          TextButton(
-              onPressed: () => setState(() {
-                    addSessionToCurrentSong = true;
-                  }),
-              child: const Text("Add a new session")),
-          DropdownButton2(
-            items: currentSong.sessions
-                .map((item) => DropdownMenuItem<Session>(
-                      value: item,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Text(
-                            "Genre: " + item.genre,
-                            style: const TextStyle(
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            "Sub Genre: " + item.subGenre,
-                            style: const TextStyle(
-                              fontSize: 14,
-                            ),
-                          )
-                        ],
-                      ),
-                    ))
-                .toList(),
-            buttonDecoration: BoxDecoration(
-                color: Colors.lightGreen,
-                //background color of dropdown button
-                border: Border.all(color: Colors.black38, width: 3),
-                //border of dropdown button
-                borderRadius: BorderRadius.circular(20),
-                //border raiuds of dropdown button
-                boxShadow: const <BoxShadow>[
-                  //apply shadow on Dropdown button
-                  BoxShadow(
-                      color: Color.fromRGBO(0, 0, 0, 0.57), //shadow for button
-                      blurRadius: 5) //blur radius of shadow
-                ]),
-            value: selectedValue,
-            isExpanded: true,
-            onChanged: (value) {
-              setState(() {
-                selectedValue = value as Session;
-              });
-              refreshRecordings();
-              currentSong.currentSession = selectedValue;
-            },
-            buttonHeight: 40,
-            buttonWidth: MediaQuery.of(context).size.width / 4.2,
-            itemHeight: 40,
-          ),
-        ],
-      ),
-    );
-  }
+  // buildSessionDropdown() {
+  //   return Positioned(
+  //     top: 200,
+  //     height: 50,
+  //     child: Row(
+  //       children: [
+  //         TextButton(
+  //             onPressed: () => setState(() {
+  //                   addSessionToCurrentSong = true;
+  //                 }),
+  //             child: const Text("Add a new session")),
+  //         DropdownButton2(
+  //           items: currentSong.sessions
+  //               .map((item) => DropdownMenuItem<Session>(
+  //                     value: item,
+  //                     child: Row(
+  //                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  //                       children: [
+  //                         Text(
+  //                           "Genre: " + item.genre,
+  //                           style: const TextStyle(
+  //                             fontSize: 14,
+  //                           ),
+  //                         ),
+  //                         Text(
+  //                           "Sub Genre: " + item.subGenre,
+  //                           style: const TextStyle(
+  //                             fontSize: 14,
+  //                           ),
+  //                         )
+  //                       ],
+  //                     ),
+  //                   ))
+  //               .toList(),
+  //           buttonDecoration: BoxDecoration(
+  //               color: Colors.lightGreen,
+  //               //background color of dropdown button
+  //               border: Border.all(color: Colors.black38, width: 3),
+  //               //border of dropdown button
+  //               borderRadius: BorderRadius.circular(20),
+  //               //border raiuds of dropdown button
+  //               boxShadow: const <BoxShadow>[
+  //                 //apply shadow on Dropdown button
+  //                 BoxShadow(
+  //                     color: Color.fromRGBO(0, 0, 0, 0.57), //shadow for button
+  //                     blurRadius: 5) //blur radius of shadow
+  //               ]),
+  //           value: selectedValue,
+  //           isExpanded: true,
+  //           onChanged: (value) {
+  //             setState(() {
+  //               selectedValue = value as Session;
+  //             });
+  //             refreshRecordings();
+  //             currentSong.currentSession = selectedValue;
+  //           },
+  //           buttonHeight: 40,
+  //           buttonWidth: MediaQuery.of(context).size.width / 4.2,
+  //           itemHeight: 40,
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   addSongButton() {
     return Positioned(
@@ -1208,66 +1208,66 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   void openSessionAdder() {}
 
-  void addSessionToFirebase() async {
-    DocumentReference docRef = await FirebaseFirestore.instance
-        .collection('songs')
-        .doc(currentSong.getId())
-        .collection("sessions")
-        .add({
-      "subGenre": subGenreController.text,
-      "genre": genreController.text
-    });
-    Session newSession =
-        Session(docRef.id, subGenreController.text, genreController.text);
-    setState(() {
-      watchingUrls.clear();
-      currentSong.addSession(newSession);
-      currentSong.currentSession = newSession;
-      selectedValue = newSession;
-      addSessionToCurrentSong = false;
-      addSession = false;
-      focusOnBottom = false;
-      focusOnSearch = false;
-      errorMessage = "";
-      resetControllers();
-    });
-  }
+  // void addSessionToFirebase() async {
+  //   DocumentReference docRef = await FirebaseFirestore.instance
+  //       .collection('songs')
+  //       .doc(currentSong.getId())
+  //       .collection("sessions")
+  //       .add({
+  //     "subGenre": subGenreController.text,
+  //     "genre": genreController.text
+  //   });
+  //   Session newSession =
+  //       Session(docRef.id, subGenreController.text, genreController.text);
+  //   setState(() {
+  //     watchingUrls.clear();
+  //     currentSong.addSession(newSession);
+  //     currentSong.currentSession = newSession;
+  //     selectedValue = newSession;
+  //     addSessionToCurrentSong = false;
+  //     addSession = false;
+  //     focusOnBottom = false;
+  //     focusOnSearch = false;
+  //     errorMessage = "";
+  //     resetControllers();
+  //   });
+  // }
 
-  currentSessionAdder() {
-    return Positioned(
-      top: 255,
-      left: (MediaQuery.of(context).size.width / 3 -
-                  MediaQuery.of(context).size.width / 4) /
-              2 -
-          10,
-      right: (MediaQuery.of(context).size.width / 3 -
-                  MediaQuery.of(context).size.width / 4) /
-              2 -
-          10,
-      child: Container(
-          height: 200,
-          width: MediaQuery.of(context).size.width / 4,
-          decoration: BoxDecoration(
-              border: Border.all(color: Colors.green, width: 2),
-              borderRadius: const BorderRadius.only(
-                  bottomRight: Radius.circular(10.0),
-                  bottomLeft: Radius.circular(10.0)),
-              color: Colors.white),
-          child: Stack(children: [
-            sessionAdder(),
-            IconButton(
-                onPressed: () => setState(() {
-                      addSessionToCurrentSong = false;
-                      errorMessage = "";
-                      resetControllers();
-                    }),
-                icon: const Icon(
-                  Icons.close,
-                  color: Colors.black,
-                ))
-          ])),
-    );
-  }
+  // currentSessionAdder() {
+  //   return Positioned(
+  //     top: 255,
+  //     left: (MediaQuery.of(context).size.width / 3 -
+  //                 MediaQuery.of(context).size.width / 4) /
+  //             2 -
+  //         10,
+  //     right: (MediaQuery.of(context).size.width / 3 -
+  //                 MediaQuery.of(context).size.width / 4) /
+  //             2 -
+  //         10,
+  //     child: Container(
+  //         height: 200,
+  //         width: MediaQuery.of(context).size.width / 4,
+  //         decoration: BoxDecoration(
+  //             border: Border.all(color: Colors.green, width: 2),
+  //             borderRadius: const BorderRadius.only(
+  //                 bottomRight: Radius.circular(10.0),
+  //                 bottomLeft: Radius.circular(10.0)),
+  //             color: Colors.white),
+  //         child: Stack(children: [
+  //           sessionAdder(),
+  //           IconButton(
+  //               onPressed: () => setState(() {
+  //                     addSessionToCurrentSong = false;
+  //                     errorMessage = "";
+  //                     resetControllers();
+  //                   }),
+  //               icon: const Icon(
+  //                 Icons.close,
+  //                 color: Colors.black,
+  //               ))
+  //         ])),
+  //   );
+  // }
 
   itemRemoved(CustomUrlAudioPlayer customUrlAudioPlayer) {
     addItemToWatchingUrls(customUrlAudioPlayer);
