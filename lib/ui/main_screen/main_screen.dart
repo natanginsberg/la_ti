@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
@@ -173,6 +174,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         title: Row(
           children: [
             const Text("La-Si"),
+            const Text(
+              "beta",
+              style: TextStyle(fontSize: 10),
+            ),
             SizedBox(
               width: MediaQuery.of(context).size.width / 4,
             ),
@@ -322,12 +327,41 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   Future<bool> uploadRecordingToWasabi(bool withVideo) async {
-    if (currentSong.name == "") {
-      showErrorDialog("You can only upload your recording inside a song.");
+    // making sure the user played on a different recording if there was one there
+    if (currentSong.name != "" &&
+        recordingsToPlay.isPlayersEmpty() &&
+        watchingUrls.isNotEmpty) {
+      showErrorDialog(
+          "You can only upload your recording inside a song with a pre-existing"
+          " recording, sorry.");
+      return false;
     }
     if (uploading) {
       showErrorDialog('Only one file can be uploaded at a time, sorry.');
       return false;
+    } else if (currentSong.name == "") {
+      await showAddSongSnackBar().then((value) async {
+        if (value == null) {
+          return false;
+        } else if (value == "Yes") {
+          await openSongAdderDialog().then((value) async {
+            if (value == null) {
+              return false;
+            } else if (value == "Yes") {
+              bool songAdded = await continueWithAddingSong();
+              if (songAdded) {
+                String id =
+                    songNameController.text + " " + artistController.text;
+                await getSongFromFirebase(id);
+                resetControllers();
+              } else {
+                showErrorDialog("Adding song Failed, sorry.");
+                return false;
+              }
+            }
+          });
+        }
+      });
     }
     final result = await Navigator.pushNamed(context, '/signIn');
     if (result != null) {
@@ -372,11 +406,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       fileName += ".webm";
     }
     String url = await SongDatabase().uploadToWasabi(fileStream, fileName);
-    //await addUrlToFirebase(url, delay, user);
+    await addUrlToFirebase(url, delay, user);
     setState(() {
       uploading = false;
     });
-    showUploadFinishedDialog();
+    showSuccessSnackBar('File uploaded successfully');
     return url;
   }
 
@@ -432,7 +466,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       "jamsIn": 0,
       "userUploadDisplayName": user.displayName
     };
-    // FirebaseFirestore.instance.collection('testingUrls').add(recordingData);
     if (currentSong.name != "") {
       // add document to songs
       await FirebaseSongs().addRecordingToSong(currentSong, recordingData);
@@ -651,10 +684,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     //   return sessionAdder();
     // }
     return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         const SizedBox(
           height: 20,
-          child: Text("Add Recording From Desktop"),
+          child: Text("Add Song To La-Si"),
         ),
         Container(
           width: MediaQuery.of(context).size.width / 4.2,
@@ -708,7 +742,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             TextButton(
                 style: ButtonStyle(
                     backgroundColor: MaterialStateProperty.all(Colors.green)),
-                onPressed: () => continueWithAddingSong(),
+                onPressed: () async {
+                  bool songAdded = await continueWithAddingSong();
+                  if (songAdded) {
+                    String id =
+                        songNameController.text + " " + artistController.text;
+                    await getSongFromFirebase(id);
+                    resetControllers();
+                  }
+                },
                 child: const Text(
                   "Add", // "Continue",
                   style: TextStyle(color: Colors.white),
@@ -845,7 +887,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     hovering = value;
   }
 
-  continueWithAddingSong() async {
+  Future<bool> continueWithAddingSong() async {
     if (inputCorrect(false)) {
       if (errorMessage != ALREADY_EXISTS_ERROR) {
         QuerySnapshot querySnapshot =
@@ -860,7 +902,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           setState(() {
             errorMessage = DEFINITELY_EXISTS_ERROR_MESSAGE;
           });
-          return;
+          return false;
         }
         if (currentSuggestions.indexWhere(
                 (element) => element.songName == songNameController.text) >
@@ -868,15 +910,22 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           setState(() {
             errorMessage = ALREADY_EXISTS_ERROR;
           });
-          return;
+          return false;
         }
       }
       setState(() {
         errorMessage = "";
         // addSession = true;
       });
-      addSongToFirebase();
+      bool songAdded = await addSongToFirebase();
+      if (songAdded) {
+        showSuccessSnackBar("Song added successfully.");
+      } else {
+        showErrorDialog("Adding song failed.");
+      }
+      return songAdded;
     }
+    return false;
   }
 
   bool inputCorrect(bool sessionChecker) {
@@ -907,31 +956,40 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   //   }
   // }
 
-  void addSongToFirebase() async {
-    Map<String, String> songToAdd = {
-      "songName": songNameController.text,
-      "songArtist": artistController.text
-    };
+  Future<bool> addSongToFirebase() async {
+    try {
+      Map<String, String> songToAdd = {
+        "songName": songNameController.text,
+        "songArtist": artistController.text
+      };
 
-    await FirebaseFirestore.instance.collection('allSongsData').add(songToAdd);
-    String id = songNameController.text + " " + artistController.text;
-    await FirebaseFirestore.instance.collection('songs').doc(id).set(songToAdd);
-    await FirebaseFirestore.instance
-        .collection('songs')
-        .doc(id)
-        .collection("sessions")
-        .add({
-      "subGenre": "original", //subGenreController.text,
-      "genre": "original", //genreController.text
-    });
-    setState(() {
-      addSessionToCurrentSong = false;
-      addSession = false;
-      focusOnBottom = false;
-      focusOnSearch = false;
-      errorMessage = "";
-      resetControllers();
-    });
+      await FirebaseFirestore.instance
+          .collection('allSongsData')
+          .add(songToAdd);
+      String id = songNameController.text + " " + artistController.text;
+      await FirebaseFirestore.instance
+          .collection('songs')
+          .doc(id)
+          .set(songToAdd);
+      await FirebaseFirestore.instance
+          .collection('songs')
+          .doc(id)
+          .collection("sessions")
+          .add({
+        "subGenre": "original", //subGenreController.text,
+        "genre": "original", //genreController.text
+      });
+      setState(() {
+        addSessionToCurrentSong = false;
+        addSession = false;
+        focusOnBottom = false;
+        focusOnSearch = false;
+        errorMessage = "";
+      });
+      return true;
+    } catch (exception) {
+      return false;
+    }
   }
 
   // sessionAdder() {
@@ -1363,13 +1421,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
-  void showUploadFinishedDialog() {
-    const snackBar = SnackBar(
+  void showSuccessSnackBar(String successString) {
+    SnackBar snackBar = SnackBar(
       backgroundColor: Colors.blueAccent,
       content: Text(
-        'File uploaded successfully',
+        successString,
       ),
-      duration: Duration(seconds: 3),
+      duration: const Duration(seconds: 3),
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
@@ -1403,5 +1461,146 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         setState(() {});
       }
     }
+  }
+
+  Future<String?> showAddSongSnackBar() {
+    return showDialog<String>(
+        context: context,
+        barrierDismissible: false, // user must tap button!
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('No Song Picked'),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: const <Widget>[
+                  Text('You can only upload your recording into a song.'),
+                  Text('Would you like to add a song?'),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Yes'),
+                onPressed: () {
+                  Navigator.of(context).pop("Yes");
+                },
+              ),
+              TextButton(
+                child: const Text('No'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        });
+  }
+
+  Future<String?> openSongAdderDialog() {
+    return showDialog<String>(
+        context: context,
+        barrierDismissible: false, // user must tap button!
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0)),
+            child: Container(
+                height: MediaQuery.of(context).size.height / 2,
+                width: min(MediaQuery.of(context).size.width / 4, 340),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    const SizedBox(
+                      height: 20,
+                      child: Text("Add Song To La-Si"),
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 4.2,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blue, width: 2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: TextField(
+                          style: const TextStyle(color: Colors.black),
+                          textAlign: TextAlign.center,
+                          controller: songNameController,
+                          decoration: const InputDecoration(
+                            hintText: "Song Name",
+                            hintStyle: TextStyle(color: Colors.grey),
+                            fillColor: Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    Container(
+                      width: MediaQuery.of(context).size.width / 4.2,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blue, width: 2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: TextField(
+                          style: const TextStyle(color: Colors.black),
+                          textAlign: TextAlign.center,
+                          controller: artistController,
+                          decoration: const InputDecoration(
+                            hintText: "Song Artist",
+                            hintStyle: TextStyle(color: Colors.grey),
+                            fillColor: Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton(
+                            style: ButtonStyle(
+                                backgroundColor:
+                                    MaterialStateProperty.all(Colors.green)),
+                            onPressed: () => Navigator.of(context).pop("Yes"),
+                            child: const Text(
+                              "Add", // "Continue",
+                              style: TextStyle(color: Colors.white),
+                            )),
+                        TextButton(
+                            style: ButtonStyle(
+                                backgroundColor:
+                                    MaterialStateProperty.all(Colors.red)),
+                            onPressed: () {
+                              setState(() {
+                                Navigator.of(context).pop();
+                                resetControllers();
+                              });
+                            },
+                            child: const Text(
+                              "Cancel",
+                              style: TextStyle(color: Colors.white),
+                            )),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    if (errorMessage != "")
+                      Center(
+                        child: Text(
+                          errorMessage,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      )
+                  ],
+                )),
+          );
+        });
   }
 }
