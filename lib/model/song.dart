@@ -11,7 +11,6 @@ class Song {
 
   void addSession(Session session) {
     sessions.add(session);
-    if (sessions.length == 1) currentSession = session;
   }
 
   String getId() {

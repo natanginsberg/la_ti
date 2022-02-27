@@ -1,22 +1,23 @@
 import 'dart:typed_data';
 
-import 'package:intl/intl.dart';
 import 'package:minio/minio.dart';
 
 import 'keys.dart';
 
 class SongDatabase {
-  String bucket = 'new-test-bucket-222';
+  String bucket = 'user-recordings';
   final minio = Minio(
-    endPoint: "s3.wasabisys.com",
+    endPoint: "s3.us-central-1.wasabisys.com",
     accessKey: Keys().getAccessKey(),
     secretKey: Keys().getPrivateKey(),
   );
 
-  Future<String> uploadToWasabi(Stream<Uint8List> fileStream, String fileName) async {
+  Future<String> uploadToWasabi(Stream<Uint8List> fileStream,
+      String fileName) async {
     await minio.putObject(bucket, fileName, fileStream,
+        onProgress: (bytes) => print('$bytes uploaded'),
         metadata: {'x-amz-acl': 'public-read'});
-    return "https://s3.wasabisys.com/new-test-bucket-222/$fileName";
+    return "https://s3.us-central-1.wasabisys.com/$bucket/$fileName";
   }
 
   deleteFromWasabi(String fileName) async {
@@ -24,5 +25,9 @@ class SongDatabase {
     MinioInvalidObjectNameError.check(fileName);
 
     await minio.removeObject(bucket, fileName);
+  }
+
+  Future<MinioByteStream> getObjectFromWasabi(String fileName) async {
+    return minio.getObject(bucket, fileName);
   }
 }

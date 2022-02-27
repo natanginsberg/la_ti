@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -43,13 +44,15 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
 
   bool canResendEmail = false;
 
-  bool newUser = true;
+  bool newUser = false;
 
   bool forgotPasswordEmailSent = false;
 
   Timer? forgetTimer;
 
   String DISPLAY_NAME_TAKEN = "This display name is taken.";
+
+  bool changeSignInHovering = false;
 
   _SignInState();
 
@@ -65,9 +68,9 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    if (FirebaseAuth.instance.currentUser != null) {
+    if (FirebaseAuth.instance.currentUser != null &&
+        !FirebaseAuth.instance.currentUser!.isAnonymous) {
       verifyEmail();
     }
   }
@@ -137,8 +140,7 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
                                 onPressed: () {
                                   timer!.cancel();
                                   FirebaseAuth.instance.signOut();
-                                  FirebaseAuth.instance
-                                      .signInAnonymously();
+                                  FirebaseAuth.instance.signInAnonymously();
                                   canResendEmail = false;
                                   setState(() {
                                     emailSent = false;
@@ -508,19 +510,35 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
               "Create Account",
               style: TextStyle(color: Colors.white),
             )),
-        TextButton(
-            // style: ElevatedButton.styleFrom(
-            //     minimumSize: Size.fromHeight(50)),
-            onPressed: () {
-              setState(() {
-                newUser = false;
-              });
-            },
-            child: const Text(
-              "Already have an account click here",
-              style: TextStyle(
-                  decoration: TextDecoration.underline, color: Colors.orange),
-            )),
+        Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: Center(
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (PointerEvent details) =>
+                  setState(() => changeSignInHovering = true),
+              onExit: (PointerEvent details) => setState(() {
+                changeSignInHovering = false;
+              }),
+              child: RichText(
+                  text: TextSpan(
+                      text: "Already have an account? Click here",
+                      style: TextStyle(
+                        color: changeSignInHovering
+                            ? Colors.deepOrange
+                            : Colors.black,
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () {
+                          setState(() {
+                            errorMessage = "";
+                            newUser = false;
+                          });
+                        })),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -539,18 +557,35 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
               "Sign In",
               style: TextStyle(color: Colors.white),
             )),
-        TextButton(
-            onPressed: () {
-              setState(() {
-                errorMessage = "";
-                newUser = true;
-              });
-            },
-            child: const Text(
-              "Don't have an account click here",
-              style: TextStyle(
-                  decoration: TextDecoration.underline, color: Colors.orange),
-            )),
+        Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: Center(
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (PointerEvent details) =>
+                  setState(() => changeSignInHovering = true),
+              onExit: (PointerEvent details) => setState(() {
+                changeSignInHovering = false;
+              }),
+              child: RichText(
+                  text: TextSpan(
+                      text: "If you do not have an account click here",
+                      style: TextStyle(
+                        color: changeSignInHovering
+                            ? Colors.deepOrange
+                            : Colors.black,
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () {
+                          setState(() {
+                            errorMessage = "";
+                            newUser = true;
+                          });
+                        })),
+            ),
+          ),
+        ),
       ],
     );
   }

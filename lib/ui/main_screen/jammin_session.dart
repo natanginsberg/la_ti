@@ -1,34 +1,39 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:camera/camera.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:la_ti/model/custom_url_audio_player.dart';
+import 'package:flutter_sound/flutter_sound.dart';
 import 'package:wakelock/wakelock.dart';
 
+import '../../utils/firebase_access/analytics.dart';
+import '../../utils/main_screen/custom_url_audio_player.dart';
 import '../../utils/main_screen/recording_to_play.dart';
 
 class JammingSession extends StatefulWidget {
   CameraController? cameraController;
-  RecordingsToPlay recordingsToPlay;
+  Widget? cameraWidget;
 
-  Widget cameraWidget;
+  RecordingsToPlay recordingsToPlay;
 
   VoidCallback incrementJamsUsed;
 
-  VoidCallback stopRecording;
+  Function(bool) stopRecording;
 
-  VoidCallback uploadRecording;
+  Function(bool) uploadRecording;
 
   Function(CustomUrlAudioPlayer) itemRemoved;
 
   Function(String, bool) followArtist;
 
+  FlutterSoundRecorder soundRecorder;
+
   JammingSession(
       {Key? key,
       required this.stopRecording,
       this.cameraController,
+      required this.soundRecorder,
       required this.recordingsToPlay,
       required this.cameraWidget,
       required this.uploadRecording,
@@ -42,6 +47,7 @@ class JammingSession extends StatefulWidget {
 }
 
 class _JammingSessionState extends State<JammingSession> {
+  FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   final ScrollController _mainController = ScrollController();
 
   Duration songLength = const Duration(seconds: 0);
@@ -52,6 +58,8 @@ class _JammingSessionState extends State<JammingSession> {
   Timer timer = Timer(const Duration(hours: 30), () {});
 
   bool isPlaying = false;
+
+  bool isVideoVisible = false;
 
   int countdown = 3;
 
@@ -71,10 +79,33 @@ class _JammingSessionState extends State<JammingSession> {
 
   bool instrumentMustBeEntered = false;
 
+  String pathForAudio = "my_video.webm";
+
+  FlutterSoundPlayer soundPlayer = FlutterSoundPlayer();
+
+  int currentRecorderTime = 0;
+
   @override
   void initState() {
     super.initState();
     widget.recordingsToPlay.addEndFunction(endSession);
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    Wakelock.disable();
+    if (timer.isActive) {
+      timer.cancel();
+    }
+    if (startTimer.isActive) {
+      startTimer.cancel();
+    }
+    _mainController.dispose();
+    if (soundPlayer.isOpen()) {
+      soundPlayer.closePlayer();
+    }
+    super.dispose();
   }
 
   @override
@@ -113,79 +144,85 @@ class _JammingSessionState extends State<JammingSession> {
             childAspectRatio: 1,
             crossAxisSpacing: 5,
             mainAxisSpacing: 5),
-        itemCount: widget.recordingsToPlay.players.length + 1,
+        itemCount: 6,
         // playingUrls.length + 1,
 
         itemBuilder: (BuildContext ctx, index) {
           bool followingMusician = false;
           if (index > 0) {
-            followingMusician = widget
-                .recordingsToPlay.players[index - 1].recording.userIsFollowing;
+            followingMusician =
+                widget.recordingsToPlay.isUserFollowing(index - 1);
           }
           // print(index);
           return index == 0
-              ? Container(
-                  color: Colors.transparent,
-                  width: 400,
-                  child: Stack(children: [
-                    Center(child: widget.cameraWidget),
-                    if (songStarted && recordVideo)
-                      const Padding(
-                        padding: EdgeInsets.all(5),
-                        child: CircleAvatar(
-                            radius: 10,
-                            backgroundColor: Colors.red,
-                            child: Icon(
-                              Icons.more_vert,
-                              color: Colors.transparent,
-                            )),
-                      ),
-                    if (watching)
-                      widget.recordingsToPlay.previousRecordingPlayer.blobPlayer
-                  ]))
-              : Container(
-                  width: 400,
-                  color: Colors.transparent,
-                  child: Stack(
-                    children: [
-                      widget.recordingsToPlay.getPlayWidget(index - 1),
-                      SafeArea(
-                          child: IconButton(
-                        onPressed: () async {
-                          bool problematicRemoval =
-                              index < widget.recordingsToPlay.players.length &&
-                                  songStarted;
-                          if (problematicRemoval) {
-                            removeProblematicVideo(index);
-                          } else {
-                            setState(() {
-                              widget.itemRemoved(
-                                  widget.recordingsToPlay.players[index - 1]);
-                              widget.recordingsToPlay.removePlayer(index - 1);
-                            });
-                          }
-                        },
-                        icon: const Icon(
-                          Icons.remove_circle,
-                          color: Colors.white,
-                        ),
-                      )),
-                      if (!isPlaying)
-                        subscribeButton(
-                            followingMusician,
-                            widget.recordingsToPlay.players[index - 1].recording
-                                .uploaderId),
-                      Positioned(
-                        left: 8,
-                        right: 8,
+              ? currentUserSession()
+              : widget.recordingsToPlay.players[index - 1] == null
+                  ? Container(
+                      child: const Center(
                         child: Text(
-                          widget.recordingsToPlay.players[index - 1].lastTime,
-                          style: const TextStyle(color: Colors.white),
+                          "Click on a song to add",
+                          style: TextStyle(fontSize: 20),
                         ),
-                      )
-                    ],
-                  ),
-                );
+                      ),
+                      decoration: BoxDecoration(
+                          color: Colors.grey,
+                          border:
+                              Border.all(color: Colors.blueAccent, width: 2),
+                          borderRadius: BorderRadius.circular(20)),
+                    )
+                  : Container(
+                      width: 400,
+                      color: Colors.transparent,
+                      child: Stack(
+                        children: [
+                          widget.recordingsToPlay.getPlayWidget(index - 1),
+                          SafeArea(
+                              child: IconButton(
+                            onPressed: () async {
+                              bool problematicRemoval = index <
+                                      widget.recordingsToPlay.players.length &&
+                                  songStarted;
+                              if (problematicRemoval) {
+                                removeProblematicVideo(index);
+                              } else {
+                                if (widget
+                                        .recordingsToPlay.players[index - 1] !=
+                                    null) {
+                                  setState(() {
+                                    widget.itemRemoved(widget
+                                        .recordingsToPlay.players[index - 1]!);
+                                    widget.recordingsToPlay
+                                        .removePlayer(index - 1);
+                                  });
+                                }
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.remove_circle,
+                              color: Colors.white,
+                            ),
+                          )),
+                          if (!isPlaying)
+                            if (widget.recordingsToPlay.players[index - 1] !=
+                                null)
+                              subscribeButton(
+                                  followingMusician,
+                                  widget.recordingsToPlay.players[index - 1]!
+                                      .recording.uploaderId),
+                          if (widget.recordingsToPlay.players[index - 1] !=
+                              null)
+                            Positioned(
+                              left: 8,
+                              right: 8,
+                              child: Text(
+                                widget.recordingsToPlay.players[index - 1]!
+                                    .lastTime,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            )
+                        ],
+                      ),
+                    );
         });
   }
 
@@ -202,14 +239,15 @@ class _JammingSessionState extends State<JammingSession> {
       setState(() {
         countdown--;
       });
-      if (countdown == 1 && recordVideo) {
-        // if (songStarted) {
-        //   controller!.resumeVideoRecording();
-        // } else {
-        await widget.cameraController!.startVideoRecording();
-        widget.recordingsToPlay
-            .setStartTime(DateTime.now().millisecondsSinceEpoch);
-
+      if (countdown == 2) {
+        widget.recordingsToPlay.warmUp();
+        if (recordVideo) {
+          await widget.cameraController!.startVideoRecording();
+          int secondTime = DateTime.now().millisecondsSinceEpoch;
+          widget.recordingsToPlay.setStartTime(secondTime);
+        } else if (recordAudio) {
+          startRecording();
+        }
         // }
       } else if (countdown == 0) {
         startTimer.cancel();
@@ -218,13 +256,23 @@ class _JammingSessionState extends State<JammingSession> {
     });
   }
 
+  startRecording() async {
+    await widget.soundRecorder.openRecorder();
+    await widget.soundRecorder
+        .startRecorder(toFile: pathForAudio, codec: Codec.opusWebM);
+    int secondTime = DateTime.now().millisecondsSinceEpoch;
+    widget.recordingsToPlay.setStartTime(secondTime);
+  }
+
   void startSession() async {
+    Wakelock.enable;
+    Analytics().playAnalytics(recordAudio, recordVideo);
+    widget.recordingsToPlay.audioRecording = recordAudio && !recordVideo;
+    await widget.recordingsToPlay.playVideos(recordVideo || recordAudio);
     setState(() {
       songStarted = true;
     });
-    Wakelock.enable;
-    await widget.recordingsToPlay.playVideos(recordVideo);
-    if (widget.recordingsToPlay.isEmpty()) {
+    if (widget.recordingsToPlay.isPlayersEmpty()) {
       timer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) {
         setState(() {
           _progressValue = Duration(milliseconds: timer.tick * 100);
@@ -233,11 +281,17 @@ class _JammingSessionState extends State<JammingSession> {
     } else {
       timer =
           Timer.periodic(const Duration(milliseconds: 100), (Timer t) async {
-        double currentPosition = widget.recordingsToPlay.getCurrentPosition();
+        double currentPosition =
+            await widget.recordingsToPlay.getCurrentPosition();
         _progressValue =
             Duration(milliseconds: (currentPosition * 1000).toInt());
         setState(() {});
-        songLength = await widget.recordingsToPlay.getSongLength();
+        try {
+          songLength = await widget.recordingsToPlay.getSongLength();
+        } catch (e) {
+          print(e.toString());
+          songLength = const Duration(seconds: 240);
+        }
         setState(() {});
       });
     }
@@ -248,7 +302,9 @@ class _JammingSessionState extends State<JammingSession> {
     if (timer.isActive) {
       timer.cancel();
     }
-    if (recordVideo && !watching) widget.stopRecording();
+    if ((recordVideo || recordAudio) && !watching) {
+      widget.stopRecording(recordVideo);
+    }
     widget.recordingsToPlay.stopVideos();
     if (watching) {
       widget.recordingsToPlay.previousRecordingPlayer.pause();
@@ -263,16 +319,10 @@ class _JammingSessionState extends State<JammingSession> {
       watching = false;
       isPlaying = false;
       songStarted = false;
-      if (recordVideo) {
+      if (recordVideo || recordAudio) {
         songEnded = true;
       }
     });
-
-    if (recordVideo) {
-      // calculateDelay();
-      // playVideo(videoFile.name);
-      // await openPlaybackDialog();
-    }
   }
 
   watchRecording() async {
@@ -281,23 +331,22 @@ class _JammingSessionState extends State<JammingSession> {
     setState(() {
       watching = true;
     });
+    await widget.recordingsToPlay.warmUp(true);
     await Future.delayed(const Duration(milliseconds: 1000));
     await widget.recordingsToPlay.playRecording();
   }
 
-  startUpload() {
-    // if (instrumentController.text.isNotEmpty) {
-    setState(() {
-      uploadStarted = true;
-    });
+  startUpload() async {
+    uploadStarted = true;
     widget.recordingsToPlay.instrumentPlayed = instrumentController.text;
-    widget.uploadRecording();
-    resetScreen();
-    // } else {
-    //   setState(() {
-    //     instrumentMustBeEntered = true;
-    //   });
-    // }
+    bool uploading = await widget.uploadRecording(recordVideo);
+    if (uploading) {
+      Analytics().uploadFollowedThrough();
+      setState(() {});
+    } else {
+      uploadStarted = false;
+      Analytics().uploadNotContinued();
+    }
   }
 
   aboveProgressBar() {
@@ -312,7 +361,7 @@ class _JammingSessionState extends State<JammingSession> {
                   fontSize: 20),
             ),
           )
-        : !songEnded || watching || !recordVideo
+        : !songEnded || watching || !(recordVideo || recordAudio)
             ? playButtonRow()
             : endRecordingOptions();
   }
@@ -363,6 +412,11 @@ class _JammingSessionState extends State<JammingSession> {
             iconSize: 45,
           ),
         ),
+        if (widget.recordingsToPlay.largestDifference > 0)
+          Text(
+            widget.recordingsToPlay.largestDifference.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
         isPlaying
             ? const Padding(
                 padding: EdgeInsets.all(10.0),
@@ -380,9 +434,12 @@ class _JammingSessionState extends State<JammingSession> {
                       padding: const EdgeInsets.all(10),
                     ),
                     onPressed: () => setState(() {
-                          recordVideo = !recordVideo;
-                          if (recordVideo) {
-                            recordAudio = true;
+                          if (isVideoVisible) {
+                            recordVideo = !recordVideo;
+                            recordAudio = !recordAudio;
+                            if (recordVideo) {
+                              recordAudio = true;
+                            }
                           }
                         }),
                     child: Icon(
@@ -408,9 +465,16 @@ class _JammingSessionState extends State<JammingSession> {
                       padding: const EdgeInsets.all(10),
                     ),
                     onPressed: () => setState(() {
-                          recordAudio = !recordAudio;
-                          if (!recordAudio) {
-                            recordVideo = false;
+                          // recordAudio = !recordAudio;
+                          // if (!recordAudio) {
+                          //   recordVideo = false;
+                          // }
+                          if (isVideoVisible) {
+                            recordVideo = !recordVideo;
+                            recordAudio = !recordAudio;
+                            if (recordVideo) {
+                              recordAudio = true;
+                            }
                           }
                         }),
                     child: Icon(
@@ -430,7 +494,7 @@ class _JammingSessionState extends State<JammingSession> {
         TextButton(
           onPressed: () => watchRecording(),
           child: const Text(
-            "Watch Recording",
+            "View Recording",
             style: TextStyle(color: Colors.white),
           ),
           style: ButtonStyle(
@@ -461,6 +525,7 @@ class _JammingSessionState extends State<JammingSession> {
   void resetScreen() {
     //todo reset all parameters
     widget.recordingsToPlay.delaySet = false;
+    widget.recordingsToPlay.resetRecordings();
     instrumentController.clear();
     setState(() {
       songEnded = false;
@@ -469,9 +534,11 @@ class _JammingSessionState extends State<JammingSession> {
   }
 
   removeVideo(int index) async {
-    await widget.itemRemoved(widget.recordingsToPlay.players[index - 1]);
-    await widget.recordingsToPlay.removePlayer(index - 1, true);
-    setState(() {});
+    if (widget.recordingsToPlay.players[index - 1] != null) {
+      await widget.itemRemoved(widget.recordingsToPlay.players[index - 1]!);
+      await widget.recordingsToPlay.removePlayer(index - 1, true);
+      setState(() {});
+    }
   }
 
   void removeProblematicVideo(int index) async {
@@ -485,9 +552,12 @@ class _JammingSessionState extends State<JammingSession> {
       right: 15,
       child: ElevatedButton(
         onPressed: () async {
-          bool userSignIn = await widget.followArtist(uploaderId, userIsFollowing);
-          widget.recordingsToPlay.changeSubscription(uploaderId);
-          setState(() {});
+          bool userSignIn =
+              await widget.followArtist(uploaderId, userIsFollowing);
+          if (userSignIn) {
+            widget.recordingsToPlay.changeSubscription(uploaderId);
+            setState(() {});
+          }
         },
         style: ElevatedButton.styleFrom(
           primary: Colors.blueAccent,
@@ -504,5 +574,70 @@ class _JammingSessionState extends State<JammingSession> {
         ),
       ),
     );
+  }
+
+  currentUserSession() {
+    return Container(
+        color: Colors.transparent,
+        width: 400,
+        child: Stack(children: [
+          Center(
+              child: Stack(
+            children: [
+              isVideoVisible
+                  ? widget.cameraWidget!
+                  : Container(
+                      width: 400,
+                      height: 300,
+                      color: Colors.blueAccent,
+                      child: const Icon(
+                        Icons.videocam,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    ),
+              if (!isPlaying)
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  // width: 50,
+                  child: SwitchListTile(
+                    title: const Text(
+                      "Video visible",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    secondary: Icon(
+                      isVideoVisible ? Icons.videocam : Icons.videocam_off,
+                      color: Colors.white,
+                    ),
+                    value: isVideoVisible,
+                    onChanged: (value) {
+                      setState(() {
+                        isVideoVisible = value;
+                        if (value == false) {
+                          recordVideo = false;
+                        }
+                      });
+                    },
+                    activeTrackColor: Colors.lightGreenAccent,
+                    activeColor: Colors.green,
+                  ),
+                ),
+            ],
+          )),
+          if (songStarted && (recordVideo || recordAudio))
+            const Padding(
+              padding: EdgeInsets.all(5),
+              child: CircleAvatar(
+                  radius: 10,
+                  backgroundColor: Colors.red,
+                  child: Icon(
+                    Icons.more_vert,
+                    color: Colors.transparent,
+                  )),
+            ),
+          if (watching)
+            widget.recordingsToPlay.previousRecordingPlayer.blobPlayer
+        ]));
   }
 }

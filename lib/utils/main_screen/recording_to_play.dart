@@ -1,16 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
-import 'package:la_ti/model/custom_url_audio_player.dart';
+import 'package:flutter/foundation.dart';
 import 'package:la_ti/model/recording.dart';
 
+import 'custom_url_audio_player.dart';
+
 class RecordingsToPlay {
-  List<CustomUrlAudioPlayer> players = [];
+  List<CustomUrlAudioPlayer?> players = [null, null, null, null, null];
   static int counter = 0;
   late VoidCallback songEnded;
   String recordingPath = "";
   List<int> startTimes = [];
   Timer? timer;
+  Timer? latencyTimer;
 
   late CustomUrlAudioPlayer previousRecordingPlayer;
 
@@ -24,6 +27,12 @@ class RecordingsToPlay {
 
   double currentTime = 0;
 
+  bool audioRecording = false;
+
+  bool songStarted = false;
+
+  double largestDifference = 0;
+
   RecordingsToPlay();
 
   String instrumentPlayed = "";
@@ -33,45 +42,60 @@ class RecordingsToPlay {
   }
 
   startVideos() async {
-    for (CustomUrlAudioPlayer player in players) {
-      await player.play();
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        await player.play();
+      }
     }
   }
 
   stopVideos() async {
+    songStarted = false;
+    largestDifference = getDifference();
     if (timer != null && timer!.isActive) {
       timer!.cancel();
     }
-    for (CustomUrlAudioPlayer player in players) {
-      await player.stop();
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        await player.stop();
+      }
     }
   }
 
   pauseVideo() async {
-    for (CustomUrlAudioPlayer player in players) {
-      await player.pause();
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        await player.pause();
+      }
     }
     if (players.isNotEmpty) {
-      double currentTime = players[0].getCurrentPosition();
-      for (CustomUrlAudioPlayer player in players) {
-        if (currentTime != null) await player.seek(currentTime);
+      double currentTime = await getCurrentPosition();
+      for (CustomUrlAudioPlayer? player in players) {
+        if (player != null) {
+          await player.seek(currentTime);
+        }
       }
     }
   }
 
   void resetRecordings() async {
-    for (CustomUrlAudioPlayer player in players) {
-      await player.seek(0);
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        await player.seek(0);
+      }
     }
   }
 
-  double getCurrentPosition() {
-    if (players.isNotEmpty) {
-      double d = players[0].getCurrentPosition();
-      if (!d.isNegative) {
-        return d;
+  Future<double> getCurrentPosition() async {
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        double d = await player.getCurrentPosition();
+        if (!d.isNegative) {
+          return d;
+        }
       }
     }
+    return 0.0;
     return 0.0;
   }
 
@@ -80,103 +104,95 @@ class RecordingsToPlay {
   }
 
   Future<Duration> getSongLength() async {
-    return await players[0].getDuration();
-  }
-
-  clearPlayers() async {
-    for (CustomUrlAudioPlayer player in players) {
-      await player.removeAudioPlayer();
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        return player.getDuration();
+      }
     }
-    players.clear();
+    return Future(() => const Duration(milliseconds: 240));
   }
-
-  // addPlayer(String path) async {
-  //   counter++;
-  //   CustomUrlAudioPlayer customPlayer = CustomUrlAudioPlayer(Recording(path, )path, () {
-  //     songEnded();
-  //   });
-  //   players.add(customPlayer);
-  //   // customPlayer.initialize();
-  // }
 
   addCustomPlayer(CustomUrlAudioPlayer player2) async {
+    if (songStarted) {
+      return false;
+    }
     await player2.resetVideo();
-    double currentPosition = getCurrentPosition();
+    double currentPosition = await getCurrentPosition();
     player2.playing = true;
+    player2.set = false;
     player2.metadataEntered = false;
-    players.add(player2);
-    if (currentPosition > 0) {
+    player2.songEnded = songEnded;
+    for (int i = 0; i < 5; i++) {
+      if (players[i] == null) {
+        players[i] = player2;
+        break;
+      } else if (i == 4) {
+        return false;
+      }
+    }
+    // the song is playing because of the delay we need to check 2 seconds
+    if (currentPosition > 2) {
       await stopVideos();
       timer = Timer.periodic(const Duration(milliseconds: 10), (Timer t) async {
-        if (player2.metadataEntered) {
+        if (player2.metadataEntered && player2.set) {
           timer!.cancel();
           await setAllPlayersToAppropriateSecond(currentPosition);
           playVideos(false);
         }
       });
     }
-  }
-
-  getPlayerController(int index) {
-    return players[index].getController();
+    return true;
   }
 
   removePlayer(int index, [bool playing = false]) async {
-    if (timer != null) {
-      timer!.cancel();
-    }
-    double currentPosition = 0;
-    if (index < players.length - 1 && playing) {
-      currentPosition = getCurrentPosition();
-    }
-    players[index].playing = false;
-    players.removeAt(index);
-    for (CustomUrlAudioPlayer player in players.sublist(index)) {
-      player.metadataEntered = false;
-    }
-    await stopVideos();
-    if (index == 0) {
-      firstPlayerRemoved = true;
-    }
-    timer = Timer.periodic(const Duration(milliseconds: 10), (Timer t) async {
-      if (players.where((element) => !element.metadataEntered).isEmpty) {
-        timer!.cancel();
-        await setAllPlayersToAppropriateSecond(currentPosition);
-        playVideos(false);
+    players[index] = null;
+  }
+
+  bool isPlayersEmpty() {
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        return false;
       }
-    });
+    }
+    return true;
   }
 
   playVideos(bool record) async {
-    for (CustomUrlAudioPlayer player in players) {
-      print(player.videoElement.currentTime);
-      await player.play();
-      startTimes.add(DateTime.now().millisecondsSinceEpoch);
-      if (record && !delaySet) {
-        timer =
-            Timer.periodic(const Duration(milliseconds: 10), (Timer t) async {
-          if (!players[0].videoElement.paused) {
-            timer!.cancel();
-            setDelay(DateTime.now().millisecondsSinceEpoch);
-          } else if (players.isEmpty) {
-            timer!.cancel();
-          }
-        });
+    songStarted = true;
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        await player.play();
+        if (record && !delaySet) {
+          timer =
+              Timer.periodic(const Duration(milliseconds: 10), (Timer t) async {
+            if (!player.isPaused()) {
+              timer!.cancel();
+              setDelay(DateTime.now().millisecondsSinceEpoch);
+            } else if (isPlayersEmpty()) {
+              timer!.cancel();
+            }
+          });
+        }
       }
     }
-    if (players.isEmpty) {
+    latencyTimer =
+        Timer.periodic(const Duration(milliseconds: 50), (Timer t) async {
+      double largestDifference = getDifference();
+      print(largestDifference);
+      latencyTimer!.cancel();
+    });
+    if (isPlayersEmpty()) {
       if (record && !delaySet) {
         setDelay(DateTime.now().millisecondsSinceEpoch);
       }
     }
   }
 
-  String getPlayerUrl(int index) {
-    return players[index].path;
-  }
-
   Widget getPlayWidget(int index) {
-    return players[index].playWidget();
+    if (players[index] != null) {
+      return players[index]!.playWidget();
+    }
+    return Container();
   }
 
   void setRecording(CustomUrlAudioPlayer recording) {
@@ -185,7 +201,7 @@ class RecordingsToPlay {
 
   void addRecordingMadeToRecordings() {
     previousRecordingPlayer =
-        CustomUrlAudioPlayer(Recording(recordingPath, 0, ""), () {
+        CustomUrlAudioPlayer(Recording(recordingPath, delay, ""), () {
       songEnded();
     }, delay);
   }
@@ -202,26 +218,94 @@ class RecordingsToPlay {
   void setDelay(int currentTime) {
     if (!delaySet) {
       delay = currentTime - startTime;
+      if (audioRecording) {
+        delay += 10;
+      }
       delaySet = true;
     }
   }
 
   setAllPlayersToAppropriateSecond(double position) {
-    for (CustomUrlAudioPlayer player in players) {
-      player.seek(position);
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        player.seek(position);
+      }
     }
   }
 
   void stopPlayer(int index) {
-    players[index].stop();
+    songStarted = false;
+    if (players[index] != null) {
+      players[index]!.stop();
+    }
   }
 
   void changeSubscription(String uploaderId) {
-    for (CustomUrlAudioPlayer customUrlAudioPlayer in players) {
-      if (customUrlAudioPlayer.recording.uploaderId == uploaderId) {
-        customUrlAudioPlayer.recording.userIsFollowing =
-            !customUrlAudioPlayer.recording.userIsFollowing;
+    for (CustomUrlAudioPlayer? customUrlAudioPlayer in players) {
+      if (customUrlAudioPlayer != null) {
+        if (customUrlAudioPlayer.recording.uploaderId == uploaderId) {
+          customUrlAudioPlayer.recording.userIsFollowing =
+              !customUrlAudioPlayer.recording.userIsFollowing;
+        }
       }
+    }
+  }
+
+  isUserFollowing(int index) {
+    if (players[index] != null) {
+      return players[index]!.recording.userIsFollowing;
+    }
+    return false;
+  }
+
+  warmUp([bool watchRecording = false]) async {
+    if (watchRecording) {
+      await previousRecordingPlayer.play();
+    }
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        await player.play();
+      }
+    }
+    latencyTimer =
+        Timer.periodic(const Duration(milliseconds: 60), (Timer t) async {
+      double largestDifference = getDifference();
+      if (kDebugMode) {
+        print(largestDifference);
+      }
+      latencyTimer!.cancel();
+    });
+    if (watchRecording) {
+      previousRecordingPlayer.stop();
+    }
+    stopVideos();
+    resetRecordings();
+    if (watchRecording) {
+      await previousRecordingPlayer.resetVideo();
+    }
+  }
+
+  double getDifference() {
+    double? maxVal = 0;
+    double? min = 1000;
+    for (int i = 0; i < 5; i++) {
+      if (players[i] != null) {
+        {
+          num currentTime = players[i]!.videoElement.currentTime -
+              players[i]!.recording.delay;
+          if (currentTime > maxVal!) {
+            maxVal = currentTime as double?;
+          }
+          if (currentTime < min!) {
+            min = currentTime as double?;
+          }
+        }
+      }
+    }
+    if (maxVal != null && min != null) {
+      return maxVal - min;
+    } else {
+      return 1;
     }
   }
 }

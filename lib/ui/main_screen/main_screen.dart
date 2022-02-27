@@ -7,19 +7,25 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
+import 'package:flutter_sound/flutter_sound.dart';
 import 'package:intl/intl.dart';
-import 'package:la_ti/model/custom_url_audio_player.dart';
 import 'package:la_ti/model/lasi_user.dart';
+import 'package:la_ti/model/original_recordings.dart';
 import 'package:la_ti/model/recording.dart';
 import 'package:la_ti/model/session.dart';
 import 'package:la_ti/model/song.dart';
 import 'package:la_ti/model/suggestions.dart';
+import 'package:la_ti/ui/main_screen/camera_widget.dart';
+import 'package:la_ti/ui/main_screen/recordings_queue.dart';
 import 'package:la_ti/utils/firebase_access/songs.dart';
+import 'package:la_ti/utils/firebase_access/users.dart';
 import 'package:la_ti/utils/wasabi_uploader.dart';
 import 'package:universal_html/html.dart' as html;
-import 'package:video_player/video_player.dart';
 
+import '../../utils/main_screen/custom_url_audio_player.dart';
 import '../../utils/main_screen/recording_to_play.dart';
 import 'jammin_session.dart';
 
@@ -33,9 +39,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
-  bool cameraReady = false;
-
-  List<CustomUrlAudioPlayer> playingUrls = [];
+  bool betaTesting = true;
 
   List<CustomUrlAudioPlayer> watchingUrls = [];
 
@@ -44,30 +48,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   List<Suggestion> suggestions = [];
 
   var isPlaying = false;
-  Timer startTimer = Timer(const Duration(hours: 30), () {});
   Timer timer = Timer(const Duration(hours: 30), () {});
 
   TextEditingController newSongController = TextEditingController();
 
-  bool recordVideo = false;
-
-  bool recordAudio = false;
-
-  bool songStarted = false;
-
-  bool songFinished = false;
-
-  int countdown = 3;
-
-  Duration delay = const Duration(seconds: 0);
-
-  bool watchingSession = false;
-
   String currentSongName = "";
   String currentSongArtist = "";
   String currentSessionDoc = "";
-
-  late VideoPlayerController playbackController;
 
   late XFile vFile;
 
@@ -120,7 +107,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   bool addSessionToCurrentSong = false;
 
-  late LasiUser lasiUser;
+  late LasiUser lasiUser = LasiUser("", true);
+
+  bool userInitialized = false;
+
+  String uploadError = "";
+
+  bool uploading = false;
+
+  bool startingNewSong = false;
 
   _MainScreenState();
 
@@ -132,28 +127,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   List<CameraDescription> cameras = [];
 
   CameraController? controller;
+  FlutterSoundRecorder soundRecorder = FlutterSoundRecorder();
   XFile? imageFile;
   late html.File videoFile;
 
   // VideoPlayerController? videoController;
   VoidCallback? videoPlayerListener;
   bool enableAudio = true;
-  double _minAvailableExposureOffset = 0.0;
-  double _maxAvailableExposureOffset = 0.0;
-  double _currentExposureOffset = 0.0;
-  late AnimationController _flashModeControlRowAnimationController;
-  late Animation<double> _flashModeControlRowAnimation;
-  late AnimationController _exposureModeControlRowAnimationController;
-  late Animation<double> _exposureModeControlRowAnimation;
-  late AnimationController _focusModeControlRowAnimationController;
-  late Animation<double> _focusModeControlRowAnimation;
-  double _minAvailableZoom = 1.0;
-  double _maxAvailableZoom = 1.0;
-  double _currentScale = 1.0;
-  double _baseScale = 1.0;
-
-  // Counting pointers (number of user fingers on screen)
-  int _pointers = 0;
 
   TextEditingController songNameController = TextEditingController();
 
@@ -166,11 +146,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       controller = null;
     }
     searchController.dispose();
-    if (controller != null) controller!.dispose();
     artistController.dispose();
     songNameController.dispose();
     subGenreController.dispose();
     genreController.dispose();
+    soundRecorder.closeRecorder();
     super.dispose();
   }
 
@@ -178,74 +158,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     signIn();
-    getFirebaseUrls();
-    getCameras();
-  }
-
-  //todo tablet addittion
-  void getCameras() async {
-    try {
-      WidgetsFlutterBinding.ensureInitialized();
-      cameras = await availableCameras();
-      controller = CameraController(
-        cameras[0],
-        ResolutionPreset.high,
-        enableAudio: enableAudio,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
-      controller!.initialize().then((value) {
-        setState(() {
-          cameraReady = true;
-        });
-      });
-    } on CameraException catch (e) {
-      // logError(e.code, e.description);
-    }
-  }
-
-  /// Display the preview from the camera (or a message if the preview is not available).
-  Widget _cameraPreviewWidget() {
-    final CameraController? cameraController = controller;
-    // print(cameras);
-    if (cameraController == null || !cameraController.value.isInitialized) {
-      return const Icon(
-        Icons.cloud,
-        color: Colors.white,
-      );
-    } else {
-      return Listener(
-        onPointerDown: (_) => _pointers++,
-        onPointerUp: (_) => _pointers--,
-        child: CameraPreview(
-          controller!,
-          child: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-            return GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onScaleStart: _handleScaleStart,
-              onScaleUpdate: _handleScaleUpdate,
-              // onTapDown: (details) => onViewFinderTap(details, constraints),
-            );
-          }),
-        ),
-      );
-    }
-  }
-
-  void _handleScaleStart(ScaleStartDetails details) {
-    _baseScale = _currentScale;
-  }
-
-  Future<void> _handleScaleUpdate(ScaleUpdateDetails details) async {
-    // When there are not exactly two fingers on screen don't scale
-    if (controller == null || _pointers != 2) {
-      return;
-    }
-
-    _currentScale = (_baseScale * details.scale)
-        .clamp(_minAvailableZoom, _maxAvailableZoom);
-
-    await controller!.setZoomLevel(_currentScale);
+    getOriginalUrlsToShowUser();
+    // initializeDateFormatting();
+    // getCameras();
   }
 
   void backButton() {
@@ -254,210 +169,118 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-        home: WillPopScope(
-      onWillPop: () {
-        return Future.value(true);
-      },
-      child: Scaffold(
-          appBar: AppBar(
-            title: Row(
-              children: [
-                const Text("La-Si"),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width / 4,
-                ),
-                if (currentSong.name != "")
-                  Text(
-                    "Title: " + currentSong.name,
-                    style: const TextStyle(color: Colors.blue),
-                  ),
-                const SizedBox(
-                  width: 80,
-                ),
-                if (currentSong.name != "")
-                  Text("Artist: " + currentSong.artist,
-                      style: const TextStyle(color: Colors.blue)),
-                const Expanded(
-                  child: SizedBox(
-                    width: 10,
-                  ),
-                ),
-                ElevatedButton(
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            const Text("La-Si"),
+            SizedBox(
+              width: MediaQuery.of(context).size.width / 4,
+            ),
+            if (currentSong.name != "")
+              Text(
+                "Title: " + currentSong.name,
+                style: const TextStyle(color: Colors.blue),
+              ),
+            const SizedBox(
+              width: 80,
+            ),
+            if (currentSong.name != "")
+              Text("Artist: " + currentSong.artist,
+                  style: const TextStyle(color: Colors.blue)),
+            const SizedBox(
+              width: 80,
+            ),
+            Text(uploadError, style: const TextStyle(color: Colors.red)),
+            const Expanded(
+              child: SizedBox(
+                width: 10,
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final result = await Navigator.pushNamed(context, '/signIn');
+                if (result != null) {
+                  final User user = result as User;
+                  changeLasiUser(user);
+                  Navigator.pushNamed(context, '/personalScreen',
+                      arguments: user);
+                }
+              },
+              child: const Text(
+                "Personal Section",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            const SizedBox(
+              width: 10,
+            ),
+            if (userInitialized && !lasiUser.anonymous)
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
                   onPressed: () async {
-                    final result =
-                        await Navigator.pushNamed(context, '/signIn');
-                    if (result != null) {
-                      final User user = result as User;
-                      changeLasiUser(user);
-                      Navigator.pushNamed(context, '/personalScreen',
-                          arguments: user);
-                    }
+                    FirebaseAuth.instance.signOut();
+                    signIn();
                   },
                   child: const Text(
-                    "Personal Section",
+                    "Sign Out",
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
-                const SizedBox(
-                  width: 10,
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      FirebaseAuth.instance.signOut();
-                      signIn();
-                    },
-                    child: const Text(
-                      "Sign Out",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                )
-              ],
-            ),
-            backgroundColor: Colors.black,
-          ),
-          body: Container(
-            // height: MediaQuery.of(context).size.height,
-            // width: MediaQuery.of(context).size.width,
-            decoration: const BoxDecoration(
-                gradient: RadialGradient(
-              center: Alignment.center,
-              radius: 1.3,
-              colors: [
-                Colors.tealAccent,
-                Colors.black,
-              ],
-            )),
-            child: Column(
-              children: [
-                Flexible(
-                  child: Row(
-                    children: [
-                      SizedBox(
-                          width: MediaQuery.of(context).size.width / 3,
-                          child: songsSide()),
-                      SizedBox(
-                        child: playSide(),
-                        width: 2 * MediaQuery.of(context).size.width / 3,
-                      )
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          )),
-    ));
-  }
-
-  Widget _buildMenuList() {
-    return GridView.builder(
-      shrinkWrap: true,
-      padding: const EdgeInsets.all(16.0),
-      itemCount: watchingUrls.length,
-      itemBuilder: (context, index) {
-        final item = watchingUrls[index];
-        return _buildMenuItem(
-          item: item,
-        );
-      },
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: MediaQuery.of(context).size.width / 5,
-          childAspectRatio: 0.72,
-          crossAxisSpacing: 15,
-          mainAxisSpacing: 15),
-    );
-  }
-
-  Widget _buildMenuItem({
-    required CustomUrlAudioPlayer item,
-  }) {
-    double width = MediaQuery.of(context).size.width / 5;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (PointerEvent details) => setState(() => amIHovering = true),
-      onExit: (PointerEvent details) => setState(() {
-        amIHovering = false;
-      }),
-      child: SizedBox(
-        width: width,
-        child: Stack(
-          children: [
-            const Center(child: CircularProgressIndicator()),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                SizedBox(
-                    height: MediaQuery.of(context).size.width / 5 - 50,
-                    child: item.getController()),
-                Column(
-                  children: [
-                    Text(
-                      "Part of " + item.recording.jamsIn.toString() + " jams",
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    Text(
-                      "Uploaded on " + item.recording.uploadDate,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    Text(
-                      "By " + item.recording.uploaderDisplayName,
-                      style: const TextStyle(color: Colors.white),
-                    )
-                  ],
-                )
-              ],
-            ),
-            GestureDetector(
-              onTap: () async {
-                if (!lasiUser.anonymous) {
-                  if (lasiUser
-                      .isUserFollowingArtist(item.recording.uploaderId)) {
-                    item.recording.userIsFollowing = true;
-                  } else {
-                    item.recording.userIsFollowing = true;
-                  }
-                }
-                recordingsToPlay.addCustomPlayer(item);
-                watchingUrls.remove(item);
-                setState(() {});
-              },
-              child: Container(
-                width: MediaQuery.of(context).size.width / 2 - 50,
-                color: Colors.transparent,
-                // child: Center(child: VideoPlayer(item.getController())),
-              ),
-            ),
-            Positioned(
-              bottom: 10,
-              right: 10,
-              child: IconButton(
-                iconSize: 40,
-                icon: item.playPressed
-                    ? const Icon(Icons.stop_circle)
-                    : const Icon(Icons.play_circle_fill),
-                onPressed: () async {
-                  if (item.playPressed) {
-                    item.stop();
-                    setState(() {
-                      item.playPressed = false;
-                    });
-                  } else {
-                    await item.play();
-                    setState(() {
-                      item.playPressed = true;
-                    });
-                  }
-                },
-              ),
-            )
+              )
           ],
         ),
+        backgroundColor: Colors.black,
       ),
+      body: MaterialApp(
+          home: WillPopScope(
+        onWillPop: () {
+          return Future.value(true);
+        },
+        child: Scaffold(
+            body: Container(
+          // height: MediaQuery.of(context).size.height,
+          // width: MediaQuery.of(context).size.width,
+          decoration: const BoxDecoration(
+              gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.3,
+            colors: [
+              Colors.tealAccent,
+              Colors.black,
+            ],
+          )),
+          child: Column(
+            children: [
+              Flexible(
+                child: Row(
+                  children: [
+                    SizedBox(
+                        width: MediaQuery.of(context).size.width / 3,
+                        child: songsSide()),
+                    SizedBox(
+                      child: playSide(),
+                      width: 2 * MediaQuery.of(context).size.width / 3,
+                    )
+                  ],
+                ),
+              ),
+            ],
+          ),
+        )),
+      )),
     );
+  }
+
+  checkIfFollowing(CustomUrlAudioPlayer item) {
+    if (!lasiUser.anonymous) {
+      if (lasiUser.isUserFollowingArtist(item.recording.uploaderId)) {
+        item.recording.userIsFollowing = true;
+      } else {
+        item.recording.userIsFollowing = false;
+      }
+    }
   }
 
   pauseAudio() async {
@@ -468,13 +291,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     recordingsToPlay.pauseVideo();
   }
 
-  stopVideoRecording() async {
-    setState(() {
-      songFinished = true;
-    });
-
-    vFile = await controller!.stopVideoRecording();
-    Recording recording = Recording(vFile.path, recordingsToPlay.delay, "");
+  stopVideoRecording(bool videoRecorded) async {
+    if (videoRecorded) {
+      vFile = await controller!.stopVideoRecording();
+    } else {
+      String? path = await soundRecorder.stopRecorder();
+      await soundRecorder.closeRecorder();
+      vFile = XFile(path!);
+    }
+    Recording recording =
+        Recording(vFile.path, recordingsToPlay.delay, "", videoRecorded);
     CustomUrlAudioPlayer customUrlAudioPlayer =
         CustomUrlAudioPlayer(recording, endSession, recordingsToPlay.delay);
     // addItemToWatchingUrls(customUrlAudioPlayer);
@@ -483,54 +309,93 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   void endSession() async {
-    timer.cancel();
-    setState(() {
-      isPlaying = false;
-      songStarted = false;
-    });
-    if (recordVideo) await stopVideoRecording();
-
-    recordingsToPlay.stopVideos();
-    recordingsToPlay.resetRecordings();
-    setState(() {
-      addUrlText = "לפני פתיחה";
-    });
+    // timer.cancel();
+    // setState(() {
+    //   isPlaying = false;
+    //   songStarted = false;
+    // });
+    // if (recordVideo) await stopVideoRecording(recordVideo);
+    // recordingsToPlay.stopVideos();
+    // recordingsToPlay.resetRecordings();
+    // setState(() {
+    //   addUrlText = "לפני פתיחה";
+    // });
   }
 
-  void uploadRecordingToWasabi() async {
+  Future<bool> uploadRecordingToWasabi(bool withVideo) async {
+    if (currentSong.name == "") {
+      showErrorDialog("You can only upload your recording inside a song.");
+    }
+    if (uploading) {
+      showErrorDialog('Only one file can be uploaded at a time, sorry.');
+      return false;
+    }
     final result = await Navigator.pushNamed(context, '/signIn');
     if (result != null) {
       final User user = result as User;
       changeLasiUser(user);
-      uploadToWasabi(vFile.openRead(), recordingsToPlay.delay, user);
-      Recording recording = Recording(vFile.path, recordingsToPlay.delay, "",
-          DateFormat('yyyy-MM-dd').format(DateTime.now()), user.displayName!);
+      uploadToWasabi(vFile.openRead(), recordingsToPlay.delay, user, withVideo);
+      Recording recording = Recording(
+          vFile.path,
+          recordingsToPlay.delay,
+          "",
+          withVideo,
+          DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          user.displayName!);
       CustomUrlAudioPlayer customUrlAudioPlayer =
           CustomUrlAudioPlayer(recording, endSession, recordingsToPlay.delay);
       setState(() {
         watchingUrls.add(customUrlAudioPlayer);
       });
+      return true;
     }
+    return false;
   }
 
-  void uploadToWasabi(
-      Stream<Uint8List> fileStream, int delay, User user) async {
+  Future<String> uploadToWasabi(
+      Stream<Uint8List> fileStream, int delay, User user, bool withVideo,
+      [bool mp4File = false]) async {
+    setState(() {
+      uploading = true;
+    });
     DateTime now = DateTime.now();
     String formattedDate = DateFormat('yyyy-MM-dd–kk:mm').format(now);
     String fileName = formattedDate + user.uid;
+    if (!withVideo) {
+      fileName += "AUDIO_ONLY";
+    }
+    if (kDebugMode) {
+      fileName += "test";
+    }
+    if (mp4File) {
+      fileName += '.mp4';
+    } else {
+      fileName += ".webm";
+    }
     String url = await SongDatabase().uploadToWasabi(fileStream, fileName);
-    addUrlToFirebase(url, delay, user);
+    //await addUrlToFirebase(url, delay, user);
+    setState(() {
+      uploading = false;
+    });
+    showUploadFinishedDialog();
+    return url;
   }
 
-  void getFirebaseUrls() async {
-    FirebaseFirestore.instance
+  void getOriginalUrlsToShowUser() async {
+    await FirebaseFirestore.instance
         .collection('urls')
         .get()
-        .then((QuerySnapshot querySnapshot) {
+        .then((QuerySnapshot querySnapshot) async {
       for (var doc in querySnapshot.docs) {
-        Recording recording =
-            Recording(doc.get("url"), doc.get("delay"), doc.id);
+        OriginalRecordings recording = OriginalRecordings(
+            doc.get("url"),
+            doc.get("delay"),
+            doc.get("recordingId"),
+            !(doc.get("url") as String).contains("AUDIO_ONLY"));
         Map docData = doc.data() as Map;
+        print(docData);
+        // these are for later on when we have more data
+        if (docData.containsKey("jamsIn")) recording.jamsIn = doc.get("jamsIn");
         if (docData.containsKey("jamsIn")) recording.jamsIn = doc.get("jamsIn");
         if (docData.containsKey("userUploadDisplayName")) {
           recording.uploaderDisplayName = doc.get("userUploadDisplayName");
@@ -541,14 +406,22 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         if (docData.containsKey("userUploadId")) {
           recording.uploaderId = doc.get("userUploadId");
         }
+        // these are for the original songs
+        if (docData.containsKey("sessionId")) {
+          recording.sessionId = doc.get("sessionId");
+        }
+        if (docData.containsKey("songId")) {
+          recording.songId = doc.get("songId");
+        }
         CustomUrlAudioPlayer customUrlAudioPlayer =
             CustomUrlAudioPlayer(recording, endSession, doc.get("delay"));
         addItemToWatchingUrls(customUrlAudioPlayer);
+        // }
       }
     });
   }
 
-  void addUrlToFirebase(String value, int delay, User user) async {
+  Future<void> addUrlToFirebase(String value, int delay, User user) async {
     String formattedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
     Map<String, dynamic> recordingData = {
       "instrument": "undefined",
@@ -560,40 +433,22 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       "jamsIn": 0,
       "userUploadDisplayName": user.displayName
     };
-    FirebaseFirestore.instance.collection('urls').add(recordingData);
+    // FirebaseFirestore.instance.collection('testingUrls').add(recordingData);
     if (currentSong.name != "") {
       // add document to songs
-      await FirebaseFirestore.instance
-          .collection('songs')
-          .doc(currentSong.getId())
-          .collection("sessions")
-          .doc(currentSong.currentSession.id)
-          .collection("recordings")
-          .doc()
-          .set(recordingData);
+      await FirebaseSongs().addRecordingToSong(currentSong, recordingData);
       // add doc to user for user docs
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("recordings")
-          .doc()
-          .set({
-        'songName': currentSong.name,
-        'songArtist': currentSong.artist,
-        'songId': currentSong.getId(),
-        'sessionId': currentSong.currentSession.id,
-        'url': value,
-        "dateUploaded": formattedDate
-      });
+      await FirebaseUsers()
+          .addRecordingToUser(currentSong, value, formattedDate, user);
       // update the amount of recordings the user has uploaded
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .update({"uploads": FieldValue.increment(1)});
+      await FirebaseUsers().incrementUploads(user);
     }
   }
 
   pickAndUploadFiles() async {
+    if (uploading) {
+      showErrorDialog('Only one file can be uploaded at a time, sorry.');
+    }
     final signInResult = await Navigator.pushNamed(context, '/signIn');
     if (signInResult != null) {
       final User user = signInResult as User;
@@ -606,9 +461,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       if (result != null) {
         Uint8List? fileBytes = result.files.first.bytes;
         Future<Uint8List> fileStream = Future(() => fileBytes!);
-        uploadToWasabi(Stream.fromFuture(fileStream), 0, user);
+        String path = await uploadToWasabi(Stream.fromFuture(fileStream), 0,
+            user, true, result.files.first.name.endsWith("mp4"));
         // adding the uploaded file to playing options
-        Recording recording = Recording(result.files.first.path!, 0, "");
+        Recording recording = Recording(path, 0, "");
         CustomUrlAudioPlayer customUrlAudioPlayer =
             CustomUrlAudioPlayer(recording, endSession, 0);
         setState(() {
@@ -619,9 +475,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   playSide() {
+    Widget widget = CameraWidget(controller, cameraInitialized: initialized);
+
     return JammingSession(
-        cameraWidget: _cameraPreviewWidget(),
+        cameraWidget: widget,
         recordingsToPlay: recordingsToPlay,
+        soundRecorder: soundRecorder,
         cameraController: controller,
         stopRecording: stopVideoRecording,
         uploadRecording: uploadRecordingToWasabi,
@@ -635,17 +494,48 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       alignment: Alignment.topCenter,
       child: Stack(
         children: [
+          const Positioned(
+            top: 280,
+            left: 14,
+            child: Text(
+              "Recordings:",
+              style: TextStyle(
+                  letterSpacing: 1.4,
+                  color: Colors.white,
+                  decoration: TextDecoration.underline,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
           Container(
-              margin: const EdgeInsets.only(top: 180.0),
-              child: _buildMenuList()),
+              margin: const EdgeInsets.only(top: 280.0),
+              child: RecordingsQueue(
+                watchingUrls: watchingUrls,
+                lasiUser: lasiUser,
+                recordingTapped: recordingTapped,
+              )
+              // _buildMenuList()
+              ),
           if (currentSong.sessions.isNotEmpty) buildSessionDropdown(),
           if (currentSong.sessions.isNotEmpty) addSongButton(),
           if (addSessionToCurrentSong) currentSessionAdder(),
           searchBar(),
+          //scrollOptionIndicator()
           // if (focusOnSearch)
         ],
       ),
     );
+  }
+
+  scrollOptionIndicator() {
+    return const Positioned(
+        bottom: 10,
+        left: 10,
+        right: 10,
+        child: Icon(
+          Icons.arrow_downward,
+          color: Colors.white,
+        ));
   }
 
   searchBar() {
@@ -662,6 +552,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(8, 15, 8, 0),
           child: Column(children: [
+            const Text(
+              "To find a song search for it here.\n"
+              "If the song does not exist you have an option to add it.\n"
+              "You will be asked to add a session too.\n"
+              "(This is to make sure that you are playing the same way as other users.)\n"
+              "Clicking on the bar will show available songs.\n",
+              style: TextStyle(color: Colors.white, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
             Container(
               width: MediaQuery.of(context).size.width / 4,
               height: 48,
@@ -687,7 +586,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     textAlign: TextAlign.center,
                     controller: searchController,
                     decoration: const InputDecoration(
-                      hintText: "Search",
+                      hintText: "Search for song",
                       hintStyle: TextStyle(color: Colors.white),
                       fillColor: Colors.transparent,
                     ),
@@ -758,7 +657,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       children: [
         const SizedBox(
           height: 20,
-          child: Text("Add Song"),
+          child: Text("Add Recording From Desktop"),
         ),
         Container(
           width: MediaQuery.of(context).size.width / 4.2,
@@ -903,7 +802,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                               onShowHoverHighlight: _handleHoveHighlight,
                               child: TextButton(
                                   onPressed: () {
-                                    getSongFromFirebase(suggestion);
+                                    String id = suggestion.songName +
+                                        " " +
+                                        suggestion.songArtist;
+                                    getSongFromFirebase(id);
                                     setState(() {
                                       focusOnSearch = false;
                                       focusOnBottom = false;
@@ -1136,66 +1038,64 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     songNameController.text = "";
   }
 
-  getSongFromFirebase(Suggestion suggestion) async {
-    String id = suggestion.songName + " " + suggestion.songArtist;
-    DocumentSnapshot querySnapshot =
+  getSongFromFirebase(String id, [String defaultSessionId = ""]) async {
+    DocumentSnapshot documentSnapshot =
         await FirebaseFirestore.instance.collection('songs').doc(id).get();
     currentSong = Song(
-        name: querySnapshot.get("songName") as String,
-        artist: querySnapshot.get("songArtist") as String);
-    FirebaseFirestore.instance
+        name: documentSnapshot.get("songName") as String,
+        artist: documentSnapshot.get("songArtist") as String);
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection('songs')
         .doc(id)
         .collection("sessions")
-        .get()
-        .then((QuerySnapshot querySnapshot) {
-      for (var doc in querySnapshot.docs) {
-        Session newSession =
-            Session(doc.id, doc.get("subGenre"), doc.get("genre"));
-        try {
-          FirebaseFirestore.instance
-              .collection('songs')
-              .doc(id)
-              .collection("sessions")
-              .doc(doc.id)
-              .collection("recordings")
-              .get()
-              .then((QuerySnapshot querySnapshot2) {
-            for (var doc2 in querySnapshot2.docs) {
-              Recording recording =
-                  Recording(doc2.get("url"), doc2.get("delay"), doc2.id);
-              Map docData = doc2.data() as Map;
-              if (docData.containsKey("jamsIn")) {
-                recording.jamsIn = doc2.get("jamsIn");
-              }
-              if (docData.containsKey("userUploadDisplayName")) {
-                recording.uploaderDisplayName =
-                    doc2.get("userUploadDisplayName");
-              }
-              if (docData.containsKey("dateUploaded")) {
-                recording.uploadDate = doc2.get("dateUploaded");
-              }
-              if (docData.containsKey("userUploadId")) {
-                recording.uploaderId = doc.get("userUploadId");
-              }
-              newSession.addRecording(recording);
+        .get();
+    for (var doc in querySnapshot.docs) {
+      Session newSession =
+          Session(doc.id, doc.get("subGenre"), doc.get("genre"));
+      try {
+        await FirebaseFirestore.instance
+            .collection('songs')
+            .doc(id)
+            .collection("sessions")
+            .doc(doc.id)
+            .collection("recordings")
+            .get()
+            .then((QuerySnapshot querySnapshot2) {
+          for (var doc2 in querySnapshot2.docs) {
+            Recording recording =
+                Recording(doc2.get("url"), doc2.get("delay"), doc2.id);
+            Map docData = doc2.data() as Map;
+            if (docData.containsKey("jamsIn")) {
+              recording.jamsIn = doc2.get("jamsIn");
             }
-            currentSong.addSession(newSession);
-            if (currentSong.sessions.length == 1) {
-              setState(() {
-                selectedValue = currentSong.currentSession;
-              });
-              refreshRecordings();
+            if (docData.containsKey("userUploadDisplayName")) {
+              recording.uploaderDisplayName = doc2.get("userUploadDisplayName");
             }
-          });
-        } catch (exception) {}
-      }
-    });
+            if (docData.containsKey("dateUploaded")) {
+              recording.uploadDate = doc2.get("dateUploaded");
+            }
+            if (docData.containsKey("userUploadId")) {
+              recording.uploaderId = doc2.get("userUploadId");
+            }
+            newSession.addRecording(recording);
+          }
+          currentSong.addSession(newSession);
+          if ((currentSong.sessions.length == 1 && defaultSessionId == "") ||
+              newSession.id == defaultSessionId) {
+            currentSong.currentSession = newSession;
+            setState(() {
+              selectedValue = currentSong.currentSession;
+            });
+            refreshRecordings();
+          }
+        });
+      } catch (exception) {}
+    }
   }
 
   buildSessionDropdown() {
     return Positioned(
-      top: 100,
+      top: 200,
       height: 50,
       child: Row(
         children: [
@@ -1261,7 +1161,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   addSongButton() {
     return Positioned(
         height: 25,
-        top: 155,
+        top: 255,
         left: (MediaQuery.of(context).size.width / 3 -
                     MediaQuery.of(context).size.width / 4.2) /
                 2 -
@@ -1270,15 +1170,29 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     MediaQuery.of(context).size.width / 4.2) /
                 2 -
             10,
-        child: TextButton(
-          style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all(Colors.blue)),
-          onPressed: pickAndUploadFiles,
-          child: Text(
-            uploadPercent == 0 ? "Add Song" : uploadPercent.toString() + " %",
-            style: const TextStyle(color: Colors.white),
-          ),
-        ));
+        child: uploading
+            ? const ListTile(
+                tileColor: Colors.blueAccent,
+                title: Text(
+                  "Loading, this may take a few minutes",
+                  style: TextStyle(color: Colors.white),
+                ),
+                trailing: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 3,
+                ),
+              )
+            : TextButton(
+                style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.blue)),
+                onPressed: pickAndUploadFiles,
+                child: Text(
+                  uploadPercent == 0
+                      ? "Add Song"
+                      : uploadPercent.toString() + " %",
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ));
   }
 
   void refreshRecordings() {
@@ -1321,7 +1235,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   currentSessionAdder() {
     return Positioned(
-      top: 155,
+      top: 255,
       left: (MediaQuery.of(context).size.width / 3 -
                   MediaQuery.of(context).size.width / 4) /
               2 -
@@ -1369,22 +1283,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   void incrementRecordingsUsed() {
     if (currentSong.name != "") {
-      for (CustomUrlAudioPlayer player in recordingsToPlay.players) {
-        player.recording.jamsIn += 1;
-        // FirebaseFirestore.instance
-        //     .collection("songs")
-        //     .doc(currentSong.getId())
-        //     .collection("sessions")
-        //     .doc(currentSong.currentSession.id)
-        //     .collection("recordings")
-        //     .doc(player.recording.recordingId)
-        //     .update({"jamsIn": FieldValue.increment(1)});
-        FirebaseSongs().incrementRecordingByOne(currentSong.getId(),
-            currentSong.currentSession.id, player.recording.recordingId);
-        FirebaseFirestore.instance
-            .collection('users')
-            .doc(player.recording.uploaderId)
-            .update({"jamsIn": FieldValue.increment(1)});
+      for (CustomUrlAudioPlayer? player in recordingsToPlay.players) {
+        if (player != null) {
+          player.recording.jamsIn += 1;
+          FirebaseSongs().incrementRecordingByOne(currentSong.getId(),
+              currentSong.currentSession.id, player.recording.recordingId);
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(player.recording.uploaderId)
+              .update({"jamsIn": FieldValue.increment(1)});
+        }
       }
     }
   }
@@ -1400,6 +1308,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       lasiUser = LasiUser(FirebaseAuth.instance.currentUser!.uid, false);
       getUserFollowers();
     }
+    setState(() {
+      userInitialized = true;
+    });
   }
 
   void getUserFollowers() async {
@@ -1409,7 +1320,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         .doc(lasiUser.id)
         .get();
     if ((ds.data() as Map).containsKey("artistFollowing")) {
-      lasiUser.peopleFollowing = ds.get("artistFollowing");
+      lasiUser.artistsFollowing = ds.get("artistFollowing");
     }
   }
 
@@ -1419,20 +1330,80 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     getUserFollowers();
   }
 
-  followArtist(String artistId, bool subscribe) async {
+  followArtist(String artistId, bool currentlyFollowing) async {
     final result = await Navigator.pushNamed(context, '/signIn');
 
     if (result != null) {
       final User user = result as User;
       changeLasiUser(user);
-      if (subscribe) {
-        lasiUser.addArtistToFollow(artistId);
-
-      } else {
+      if (currentlyFollowing) {
         lasiUser.removeArtist(artistId);
+      } else {
+        lasiUser.addArtistToFollow(artistId);
       }
+      FirebaseUsers()
+          .updateFollowingList(lasiUser.id, lasiUser.artistsFollowing);
       return true;
     }
     return false;
+  }
+
+  initialized(CameraController? cameraController) {
+    setState(() {
+      controller = cameraController;
+    });
+  }
+
+  void showErrorDialog(String errorText) {
+    SnackBar snackBar = SnackBar(
+      backgroundColor: Colors.redAccent,
+      content: Text(
+        errorText,
+      ),
+      duration: const Duration(seconds: 5),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void showUploadFinishedDialog() {
+    const snackBar = SnackBar(
+      backgroundColor: Colors.blueAccent,
+      content: Text(
+        'File uploaded successfully',
+      ),
+      duration: Duration(seconds: 3),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void startNewSongWithVideo(CustomUrlAudioPlayer item) async {
+    if (startingNewSong) {
+      return;
+    }
+    startingNewSong = true;
+    await getSongFromFirebase((item.recording as OriginalRecordings).songId,
+        (item.recording as OriginalRecordings).sessionId);
+    CustomUrlAudioPlayer clickedPlayer = watchingUrls.firstWhere((element) =>
+        element.recording.recordingId == item.recording.recordingId);
+    checkIfFollowing(clickedPlayer);
+    bool songAdded = await recordingsToPlay.addCustomPlayer(clickedPlayer);
+    if (songAdded) {
+      watchingUrls.remove(clickedPlayer);
+      setState(() {});
+    }
+    startingNewSong = false;
+  }
+
+  recordingTapped(CustomUrlAudioPlayer recordingTapped) async {
+    if (currentSong.name == "") {
+      startNewSongWithVideo(recordingTapped);
+    } else {
+      checkIfFollowing(recordingTapped);
+      bool songAdded = await recordingsToPlay.addCustomPlayer(recordingTapped);
+      if (songAdded) {
+        watchingUrls.remove(recordingTapped);
+        setState(() {});
+      }
+    }
   }
 }

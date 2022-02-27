@@ -1,20 +1,20 @@
 class LasiUser {
   String userName = '';
   String id = '';
-  List<String> peopleFollowing = [];
+  List<String> artistsFollowing = [];
   bool anonymous;
 
   LasiUser(this.id, this.anonymous);
 
   addArtistToFollow(String artistId) {
-    peopleFollowing.add(artistId);
+    artistsFollowing.add(artistId);
   }
 
   isUserFollowingArtist(String artistId) {
-    return peopleFollowing.contains(artistId);
+    return artistsFollowing.contains(artistId);
   }
 
   void removeArtist(String artistId) {
-    peopleFollowing.remove(artistId);
+    artistsFollowing.remove(artistId);
   }
 }

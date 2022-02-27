@@ -9,7 +9,7 @@ import 'package:la_ti/model/display_recording_uploader.dart';
 import 'package:la_ti/utils/firebase_access/songs.dart';
 import 'package:la_ti/utils/wasabi_uploader.dart';
 
-import '../../../model/custom_url_audio_player.dart';
+import '../../../utils/main_screen/custom_url_audio_player.dart';
 
 class UploadedRecordings extends StatefulWidget {
   User user;
