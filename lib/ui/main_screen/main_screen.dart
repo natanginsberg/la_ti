@@ -554,8 +554,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             const Text(
               "To find a song search for it here.\n"
               "If the song does not exist you have an option to add it.\n"
-              "You will be asked to add a session too.\n"
-              "(This is to make sure that you are playing the same way as other users.)\n"
               "Clicking on the bar will show available songs.\n",
               style: TextStyle(color: Colors.white, fontSize: 13),
               textAlign: TextAlign.center,
@@ -1160,8 +1158,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   addSongButton() {
     return Positioned(
-        height: 25,
-        top: 255,
+        height: 35,
+        top: 225,
         left: (MediaQuery.of(context).size.width / 3 -
                     MediaQuery.of(context).size.width / 4.2) /
                 2 -
