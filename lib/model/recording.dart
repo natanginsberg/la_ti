@@ -11,6 +11,8 @@ class Recording {
 
   bool withVideo = true;
 
+  bool local = false;
+
   Recording(this.url, this.delay, this.recordingId,
       [this.withVideo = true,
       this.uploadDate = "2021-22-12",

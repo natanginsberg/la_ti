@@ -113,6 +113,9 @@ class RecordingsToPlay {
   }
 
   addCustomPlayer(CustomUrlAudioPlayer player2) async {
+    if (kDebugMode) {
+      print(player2.recording.url);
+    }
     if (songStarted) {
       return false;
     }

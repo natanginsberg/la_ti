@@ -376,6 +376,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           withVideo,
           DateFormat('yyyy-MM-dd').format(DateTime.now()),
           user.displayName!);
+      recording.local = true;
       CustomUrlAudioPlayer customUrlAudioPlayer =
           CustomUrlAudioPlayer(recording, endSession, recordingsToPlay.delay);
       setState(() {
@@ -495,9 +496,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         Uint8List? fileBytes = result.files.first.bytes;
         Future<Uint8List> fileStream = Future(() => fileBytes!);
         String path = await uploadToWasabi(Stream.fromFuture(fileStream), 0,
-            user, true, result.files.first.name.endsWith("mp4"));
+            user, true, true); //result.files.first.name.endsWith("mp4") || );
         // adding the uploaded file to playing options
         Recording recording = Recording(path, 0, "");
+        recording.local = true;
         CustomUrlAudioPlayer customUrlAudioPlayer =
             CustomUrlAudioPlayer(recording, endSession, 0);
         setState(() {
@@ -1341,7 +1343,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void incrementRecordingsUsed() {
     if (currentSong.name != "") {
       for (CustomUrlAudioPlayer? player in recordingsToPlay.players) {
-        if (player != null) {
+        if (player != null && !player.recording.local) {
           player.recording.jamsIn += 1;
           FirebaseSongs().incrementRecordingByOne(currentSong.getId(),
               currentSong.currentSession.id, player.recording.recordingId);
