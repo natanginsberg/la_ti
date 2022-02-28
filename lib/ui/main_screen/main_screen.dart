@@ -39,8 +39,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
-  bool betaTesting = true;
-
   List<CustomUrlAudioPlayer> watchingUrls = [];
 
   RecordingsToPlay recordingsToPlay = RecordingsToPlay();
@@ -173,7 +171,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       appBar: AppBar(
         title: Row(
           children: [
-            const Text("La-Si"),
+            TextButton(
+                onPressed: () {
+                  returnToStart();
+                },
+                child: const Text(
+                  "La-Si",
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                )),
             const Text(
               "beta",
               style: TextStyle(fontSize: 10),
@@ -328,45 +333,41 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   Future<bool> uploadRecordingToWasabi(bool withVideo) async {
     // making sure the user played on a different recording if there was one there
-    if (currentSong.name != "" &&
-        recordingsToPlay.isPlayersEmpty() &&
-        watchingUrls.isNotEmpty) {
-      showErrorDialog(
-          "You can only upload your recording inside a song with a pre-existing"
-          " recording, sorry.");
-      return false;
-    }
-    if (uploading) {
-      showErrorDialog('Only one file can be uploaded at a time, sorry.');
-      return false;
-    } else if (currentSong.name == "") {
-      await showAddSongSnackBar().then((value) async {
-        if (value == null) {
-          return false;
-        } else if (value == "Yes") {
-          await openSongAdderDialog().then((value) async {
-            if (value == null) {
-              return false;
-            } else if (value == "Yes") {
-              bool songAdded = await continueWithAddingSong();
-              if (songAdded) {
-                String id =
-                    songNameController.text + " " + artistController.text;
-                await getSongFromFirebase(id);
-                resetControllers();
-              } else {
-                showErrorDialog("Adding song Failed, sorry.");
-                return false;
-              }
-            }
-          });
-        }
-      });
-    }
     final result = await Navigator.pushNamed(context, '/signIn');
     if (result != null) {
       final User user = result as User;
       changeLasiUser(user);
+      if (currentSong.name != "" &&
+          recordingsToPlay.isPlayersEmpty() &&
+          watchingUrls.isNotEmpty) {
+        showErrorDialog(
+            "You can only upload your recording inside a song with a pre-existing"
+            " recording, sorry.");
+        return false;
+      }
+      if (uploading) {
+        showErrorDialog('Only one file can be uploaded at a time, sorry.');
+        return false;
+      } else if (currentSong.name == "") {
+        await showAddSongSnackBar().then((value) async {
+          if (value == null) {
+            return false;
+          } else if (value == "Yes") {
+            String? value = await getValueOfSongAdderDialog();
+            // await openSongAdderDialog().then((value) async {
+            if (value == null) {
+              return false;
+            } else if (value != "Yes") {
+              showErrorDialog("Adding song Failed, sorry.");
+              return false;
+            }
+            // });
+          } else {
+            return false;
+          }
+        });
+      }
+
       uploadToWasabi(vFile.openRead(), recordingsToPlay.delay, user, withVideo);
       Recording recording = Recording(
           vFile.path,
@@ -1496,7 +1497,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         });
   }
 
-  Future<String?> openSongAdderDialog() {
+  Future<String?> openSongAdderDialog([String dialogErrorMessage = ""]) {
     return showDialog<String>(
         context: context,
         barrierDismissible: false, // user must tap button!
@@ -1567,7 +1568,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                             style: ButtonStyle(
                                 backgroundColor:
                                     MaterialStateProperty.all(Colors.green)),
-                            onPressed: () => Navigator.of(context).pop("Yes"),
+                            onPressed: () async {
+                              bool songAdded = await continueWithAddingSong();
+                              if (songAdded) {
+                                String id = songNameController.text +
+                                    " " +
+                                    artistController.text;
+                                await getSongFromFirebase(id);
+                                resetControllers();
+                                Navigator.of(context).pop("Yes");
+                              } else {
+                                Navigator.of(context).pop("Error");
+                              }
+                            },
                             child: const Text(
                               "Add", // "Continue",
                               style: TextStyle(color: Colors.white),
@@ -1591,10 +1604,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     const SizedBox(
                       height: 10,
                     ),
-                    if (errorMessage != "")
+                    if (dialogErrorMessage != "")
                       Center(
                         child: Text(
-                          errorMessage,
+                          dialogErrorMessage,
                           style: const TextStyle(color: Colors.red),
                         ),
                       )
@@ -1602,5 +1615,22 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 )),
           );
         });
+  }
+
+  Future<String?> getValueOfSongAdderDialog([String displayError = ""]) async {
+    String? value = await openSongAdderDialog(displayError);
+    if (value != null && value == "Error") {
+      return getValueOfSongAdderDialog(errorMessage);
+    } else {
+      errorMessage = "";
+      return value;
+    }
+  }
+
+  void returnToStart() {
+    currentSong = Song(name: "", artist: "");
+    watchingUrls.clear();
+    recordingsToPlay.removeAllPayers();
+    getOriginalUrlsToShowUser();
   }
 }

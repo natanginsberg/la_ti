@@ -308,4 +308,10 @@ class RecordingsToPlay {
       return 1;
     }
   }
+
+  void removeAllPayers() {
+    for (var i = 0; i < 5; i++) {
+      players[i] = null;
+    }
+  }
 }
