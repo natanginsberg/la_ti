@@ -50,6 +50,7 @@ class _JammingSessionState extends State<JammingSession> {
   FirebaseAnalytics analytics = FirebaseAnalytics.instance;
   final ScrollController _mainController = ScrollController();
 
+  List<bool> showSlider = [false, false, false, false, false];
   Duration songLength = const Duration(seconds: 0);
   Duration _progressValue = const Duration(seconds: 0);
 
@@ -123,12 +124,12 @@ class _JammingSessionState extends State<JammingSession> {
                 child: buildGridView(),
               )),
           Positioned(
-            bottom: 50,
+            bottom: 20,
             height: 80,
             width: MediaQuery.of(context).size.width * 2 / 3,
             child: Column(children: [
-              aboveProgressBar(),
               progressBar(),
+              aboveProgressBar(),
             ]),
           )
         ],
@@ -141,9 +142,9 @@ class _JammingSessionState extends State<JammingSession> {
         controller: _mainController,
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 400,
-            childAspectRatio: 1,
-            crossAxisSpacing: 5,
-            mainAxisSpacing: 5),
+            childAspectRatio: 1.2,
+            crossAxisSpacing: 30,
+            mainAxisSpacing: 20),
         itemCount: 6,
         // playingUrls.length + 1,
 
@@ -153,76 +154,11 @@ class _JammingSessionState extends State<JammingSession> {
             followingMusician =
                 widget.recordingsToPlay.isUserFollowing(index - 1);
           }
-          // print(index);
           return index == 0
               ? currentUserSession()
               : widget.recordingsToPlay.players[index - 1] == null
-                  ? Container(
-                      child: const Center(
-                        child: Text(
-                          "Click on a song to add",
-                          style: TextStyle(fontSize: 20),
-                        ),
-                      ),
-                      decoration: BoxDecoration(
-                          color: Colors.grey,
-                          border:
-                              Border.all(color: Colors.blueAccent, width: 2),
-                          borderRadius: BorderRadius.circular(20)),
-                    )
-                  : Container(
-                      width: 400,
-                      color: Colors.transparent,
-                      child: Stack(
-                        children: [
-                          widget.recordingsToPlay.getPlayWidget(index - 1),
-                          SafeArea(
-                              child: IconButton(
-                            onPressed: () async {
-                              bool problematicRemoval = index <
-                                      widget.recordingsToPlay.players.length &&
-                                  songStarted;
-                              if (problematicRemoval) {
-                                removeProblematicVideo(index);
-                              } else {
-                                if (widget
-                                        .recordingsToPlay.players[index - 1] !=
-                                    null) {
-                                  setState(() {
-                                    widget.itemRemoved(widget
-                                        .recordingsToPlay.players[index - 1]!);
-                                    widget.recordingsToPlay
-                                        .removePlayer(index - 1);
-                                  });
-                                }
-                              }
-                            },
-                            icon: const Icon(
-                              Icons.remove_circle,
-                              color: Colors.white,
-                            ),
-                          )),
-                          if (!isPlaying)
-                            if (widget.recordingsToPlay.players[index - 1] !=
-                                null)
-                              subscribeButton(
-                                  followingMusician,
-                                  widget.recordingsToPlay.players[index - 1]!
-                                      .recording.uploaderId),
-                          if (widget.recordingsToPlay.players[index - 1] !=
-                              null)
-                            Positioned(
-                              left: 8,
-                              right: 8,
-                              child: Text(
-                                widget.recordingsToPlay.players[index - 1]!
-                                    .lastTime,
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            )
-                        ],
-                      ),
-                    );
+                  ? emptyRecording()
+                  : recording(index, followingMusician);
         });
   }
 
@@ -546,32 +482,27 @@ class _JammingSessionState extends State<JammingSession> {
   }
 
   subscribeButton(bool userIsFollowing, String uploaderId) {
-    return Positioned(
-      bottom: 8,
-      left: 15,
-      right: 15,
-      child: ElevatedButton(
-        onPressed: () async {
-          bool userSignIn =
-              await widget.followArtist(uploaderId, userIsFollowing);
-          if (userSignIn) {
-            widget.recordingsToPlay.changeSubscription(uploaderId);
-            setState(() {});
-          }
-        },
-        style: ElevatedButton.styleFrom(
-          primary: Colors.blueAccent,
-          side: const BorderSide(color: Colors.blueAccent),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
-          ),
-          elevation: 15.0,
+    return ElevatedButton(
+      onPressed: () async {
+        bool userSignIn =
+            await widget.followArtist(uploaderId, userIsFollowing);
+        if (userSignIn) {
+          widget.recordingsToPlay.changeSubscription(uploaderId);
+          setState(() {});
+        }
+      },
+      style: ElevatedButton.styleFrom(
+        primary: Colors.blueAccent,
+        side: const BorderSide(color: Colors.blueAccent),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: Text(userIsFollowing ? 'Following' : 'Follow Musician',
-              style: const TextStyle(fontSize: 15, color: Colors.white)),
-        ),
+        elevation: 15.0,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Text(userIsFollowing ? 'Following' : 'Follow Musician',
+            style: const TextStyle(fontSize: 15, color: Colors.white)),
       ),
     );
   }
@@ -587,9 +518,12 @@ class _JammingSessionState extends State<JammingSession> {
               isVideoVisible
                   ? widget.cameraWidget!
                   : Container(
+                      decoration: BoxDecoration(
+                          color: Colors.blueAccent,
+                          border: Border.all(color: Colors.grey, width: 2),
+                          borderRadius: BorderRadius.circular(20)),
                       width: 400,
-                      height: 300,
-                      color: Colors.blueAccent,
+                      height: 400,
                       child: const Icon(
                         Icons.videocam,
                         color: Colors.white,
@@ -639,5 +573,106 @@ class _JammingSessionState extends State<JammingSession> {
           if (watching)
             widget.recordingsToPlay.previousRecordingPlayer.blobPlayer
         ]));
+  }
+
+  emptyRecording() {
+    return Container(
+      child: const Center(
+        child: Text(
+          "Click on a song to add",
+          style: TextStyle(fontSize: 20),
+        ),
+      ),
+      decoration: BoxDecoration(
+          color: Colors.grey,
+          border: Border.all(color: Colors.blueAccent, width: 2),
+          borderRadius: BorderRadius.circular(20)),
+    );
+  }
+
+  recording(int index, bool followingMusician) {
+    return Container(
+      width: 400,
+      color: Colors.transparent,
+      child: Stack(
+        children: [
+          widget.recordingsToPlay.getPlayWidget(index - 1),
+          SafeArea(
+              child: IconButton(
+            onPressed: () async {
+              bool problematicRemoval =
+                  index < widget.recordingsToPlay.players.length && songStarted;
+              if (problematicRemoval) {
+                removeProblematicVideo(index);
+              } else {
+                setState(() {
+                  widget
+                      .itemRemoved(widget.recordingsToPlay.players[index - 1]!);
+                  widget.recordingsToPlay.removePlayer(index - 1);
+                });
+              }
+            },
+            icon: const Icon(
+              Icons.remove_circle,
+              color: Colors.white,
+            ),
+          )),
+          if (!isPlaying)
+            Positioned(
+              bottom: 8,
+              left: 25,
+              right: 25,
+              child: subscribeButton(
+                  followingMusician,
+                  widget.recordingsToPlay.players[index - 1]!.recording
+                      .uploaderId),
+            ),
+          Positioned(
+            left: 20,
+            right: 20,
+            child: Text(
+              widget.recordingsToPlay.players[index - 1]!.lastTime,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          Positioned(top: 8, right: 10, child: iconSlider(index - 1))
+        ],
+      ),
+    );
+  }
+
+  iconSlider(int index) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        IconButton(
+            onPressed: () {
+              setState(() {
+                showSlider[index] = !showSlider[index];
+              });
+            },
+            icon: const Icon(
+              Icons.volume_up_outlined,
+              color: Colors.white,
+            )),
+        if (showSlider[index])
+          RotatedBox(
+            quarterTurns: 3,
+            child: Slider(
+              value: widget.recordingsToPlay.players[index]!.videoElement.volume
+                      .toDouble() *
+                  100,
+              max: 100,
+              divisions: 100,
+              onChanged: (double value) {
+                setState(() {
+                  widget.recordingsToPlay.players[index]!.videoElement.volume =
+                      value / 100;
+                });
+              },
+            ),
+          )
+      ],
+    );
   }
 }

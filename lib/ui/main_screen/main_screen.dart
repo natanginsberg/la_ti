@@ -9,7 +9,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/painting.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:intl/intl.dart';
 import 'package:la_ti/model/lasi_user.dart';
@@ -30,7 +29,7 @@ import '../../utils/main_screen/recording_to_play.dart';
 import 'jammin_session.dart';
 
 class MainScreen extends StatefulWidget {
-  MainScreen();
+  const MainScreen({Key? key}) : super(key: key);
 
   // Sing({Key key, @required this.song}) : super(key: key);
 
@@ -428,7 +427,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             doc.get("recordingId"),
             !(doc.get("url") as String).contains("AUDIO_ONLY"));
         Map docData = doc.data() as Map;
-        print(docData);
+        if (kDebugMode) {
+          print(docData);
+        }
         // these are for later on when we have more data
         if (docData.containsKey("jamsIn")) recording.jamsIn = doc.get("jamsIn");
         if (docData.containsKey("jamsIn")) recording.jamsIn = doc.get("jamsIn");
@@ -995,101 +996,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  // sessionAdder() {
-  //   return Column(
-  //     children: [
-  //       Center(
-  //         child: SizedBox(
-  //             height: 20,
-  //             child: Text(addSessionToCurrentSong
-  //                 ? "Add s session"
-  //                 : "You must add a session to begin")),
-  //       ),
-  //       Container(
-  //         width: MediaQuery.of(context).size.width / 4.2,
-  //         height: 48,
-  //         decoration: BoxDecoration(
-  //           border: Border.all(color: Colors.blue, width: 2),
-  //           borderRadius: BorderRadius.circular(8),
-  //         ),
-  //         child: Center(
-  //           child: TextField(
-  //             style: const TextStyle(color: Colors.black),
-  //             textAlign: TextAlign.center,
-  //             controller: genreController,
-  //             decoration: const InputDecoration(
-  //               hintText: "Genre",
-  //               hintStyle: TextStyle(color: Colors.grey),
-  //               fillColor: Colors.transparent,
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //       const SizedBox(
-  //         height: 10,
-  //       ),
-  //       Container(
-  //         width: MediaQuery.of(context).size.width / 4.2,
-  //         height: 48,
-  //         decoration: BoxDecoration(
-  //           border: Border.all(color: Colors.blue, width: 2),
-  //           borderRadius: BorderRadius.circular(8),
-  //         ),
-  //         child: Center(
-  //           child: TextField(
-  //             style: const TextStyle(color: Colors.black),
-  //             textAlign: TextAlign.center,
-  //             controller: subGenreController,
-  //             decoration: const InputDecoration(
-  //               hintText: "Sub Genre",
-  //               hintStyle: TextStyle(color: Colors.grey),
-  //               fillColor: Colors.transparent,
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //       const SizedBox(
-  //         height: 10,
-  //       ),
-  //       Row(
-  //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  //         children: [
-  //           TextButton(
-  //               style: ButtonStyle(
-  //                   backgroundColor: MaterialStateProperty.all(Colors.green)),
-  //               onPressed: () => checkSessionAndUpdate(),
-  //               child: Text(
-  //                 addSessionToCurrentSong ? "Add Session" : "Add Song",
-  //                 style: const TextStyle(color: Colors.white),
-  //               )),
-  //           TextButton(
-  //               style: ButtonStyle(
-  //                   backgroundColor: MaterialStateProperty.all(Colors.red)),
-  //               onPressed: () => setState(() {
-  //                     focusOnBottom = false;
-  //                     focusOnSearch = false;
-  //                     resetControllers();
-  //                   }),
-  //               child: const Text(
-  //                 "Cancel",
-  //                 style: TextStyle(color: Colors.white),
-  //               )),
-  //         ],
-  //       ),
-  //       const SizedBox(
-  //         height: 10,
-  //       ),
-  //       if (errorMessage != "")
-  //         Center(
-  //           child: Text(
-  //             errorMessage,
-  //             style: const TextStyle(color: Colors.red),
-  //           ),
-  //         )
-  //     ],
-  //   );
-  // }
-
   void resetControllers() {
     artistController.text = "";
     subGenreController.text = "";
@@ -1152,71 +1058,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  // buildSessionDropdown() {
-  //   return Positioned(
-  //     top: 200,
-  //     height: 50,
-  //     child: Row(
-  //       children: [
-  //         TextButton(
-  //             onPressed: () => setState(() {
-  //                   addSessionToCurrentSong = true;
-  //                 }),
-  //             child: const Text("Add a new session")),
-  //         DropdownButton2(
-  //           items: currentSong.sessions
-  //               .map((item) => DropdownMenuItem<Session>(
-  //                     value: item,
-  //                     child: Row(
-  //                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-  //                       children: [
-  //                         Text(
-  //                           "Genre: " + item.genre,
-  //                           style: const TextStyle(
-  //                             fontSize: 14,
-  //                           ),
-  //                         ),
-  //                         Text(
-  //                           "Sub Genre: " + item.subGenre,
-  //                           style: const TextStyle(
-  //                             fontSize: 14,
-  //                           ),
-  //                         )
-  //                       ],
-  //                     ),
-  //                   ))
-  //               .toList(),
-  //           buttonDecoration: BoxDecoration(
-  //               color: Colors.lightGreen,
-  //               //background color of dropdown button
-  //               border: Border.all(color: Colors.black38, width: 3),
-  //               //border of dropdown button
-  //               borderRadius: BorderRadius.circular(20),
-  //               //border raiuds of dropdown button
-  //               boxShadow: const <BoxShadow>[
-  //                 //apply shadow on Dropdown button
-  //                 BoxShadow(
-  //                     color: Color.fromRGBO(0, 0, 0, 0.57), //shadow for button
-  //                     blurRadius: 5) //blur radius of shadow
-  //               ]),
-  //           value: selectedValue,
-  //           isExpanded: true,
-  //           onChanged: (value) {
-  //             setState(() {
-  //               selectedValue = value as Session;
-  //             });
-  //             refreshRecordings();
-  //             currentSong.currentSession = selectedValue;
-  //           },
-  //           buttonHeight: 40,
-  //           buttonWidth: MediaQuery.of(context).size.width / 4.2,
-  //           itemHeight: 40,
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   addSongButton() {
     return Positioned(
         height: 35,
@@ -1247,7 +1088,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 onPressed: pickAndUploadFiles,
                 child: Text(
                   uploadPercent == 0
-                      ? "Add Song"
+                      ? "Add Recording From Desktop"
                       : uploadPercent.toString() + " %",
                   style: const TextStyle(color: Colors.white),
                 ),
@@ -1507,7 +1348,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           return Dialog(
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.0)),
-            child: Container(
+            child: SizedBox(
                 height: MediaQuery.of(context).size.height / 2,
                 width: min(MediaQuery.of(context).size.width / 4, 340),
                 child: Column(

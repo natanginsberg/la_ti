@@ -82,7 +82,6 @@ class _UploadedRecordingsState extends State<UploadedRecordings>
 
   getRecordings() async {
     List<DisplayRecordingUploader> itemToDisplay = [];
-    print("this is the " + user.uid);
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
