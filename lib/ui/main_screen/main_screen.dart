@@ -255,7 +255,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             center: Alignment.center,
             radius: 1.3,
             colors: [
-              Colors.tealAccent,
+              Colors.blueGrey,
               Colors.black,
             ],
           )),
@@ -892,42 +892,45 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   Future<bool> continueWithAddingSong() async {
-    if (inputCorrect(false)) {
-      if (errorMessage != ALREADY_EXISTS_ERROR) {
-        QuerySnapshot querySnapshot =
-            await FirebaseFirestore.instance.collection('allSongsData').get();
-        List<Suggestion> currentSuggestions = querySnapshot.docs
-            .map((doc) => Suggestion(doc["songName"], doc["songArtist"]))
-            .toList();
-        if (currentSuggestions.indexWhere((element) =>
-                element.songName == songNameController.text &&
-                element.songArtist == artistController.text) >
-            -1) {
-          setState(() {
-            errorMessage = DEFINITELY_EXISTS_ERROR_MESSAGE;
-          });
-          return false;
+    if (errorMessage != DEFINITELY_EXISTS_ERROR_MESSAGE) {
+      if (inputCorrect(false)) {
+        if (errorMessage != ALREADY_EXISTS_ERROR) {
+          QuerySnapshot querySnapshot =
+              await FirebaseFirestore.instance.collection('allSongsData').get();
+          List<Suggestion> currentSuggestions = querySnapshot.docs
+              .map((doc) => Suggestion(doc["songName"], doc["songArtist"]))
+              .toList();
+          if (currentSuggestions.indexWhere((element) =>
+                  element.songName == songNameController.text &&
+                  element.songArtist == artistController.text) >
+              -1) {
+            setState(() {
+              errorMessage = DEFINITELY_EXISTS_ERROR_MESSAGE;
+            });
+            return false;
+          }
+          if (currentSuggestions.indexWhere(
+                  (element) => element.songName == songNameController.text) >
+              -1) {
+            setState(() {
+              errorMessage = ALREADY_EXISTS_ERROR;
+            });
+            return false;
+          }
         }
-        if (currentSuggestions.indexWhere(
-                (element) => element.songName == songNameController.text) >
-            -1) {
-          setState(() {
-            errorMessage = ALREADY_EXISTS_ERROR;
-          });
-          return false;
+        setState(() {
+          errorMessage = "";
+          // addSession = true;
+        });
+        bool songAdded = await addSongToFirebase();
+        if (songAdded) {
+          showSuccessSnackBar("Song added successfully.");
+        } else {
+          showErrorDialog("Adding song failed.");
         }
+        return songAdded;
       }
-      setState(() {
-        errorMessage = "";
-        // addSession = true;
-      });
-      bool songAdded = await addSongToFirebase();
-      if (songAdded) {
-        showSuccessSnackBar("Song added successfully.");
-      } else {
-        showErrorDialog("Adding song failed.");
-      }
-      return songAdded;
+      return false;
     }
     return false;
   }
@@ -949,16 +952,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       return false;
     }
   }
-
-  // checkSessionAndUpdate() async {
-  //   if (inputCorrect(true)) {
-  //     if (addSessionToCurrentSong) {
-  //       addSessionToFirebase();
-  //     } else {
-  //       addSongToFirebase();
-  //     }
-  //   }
-  // }
 
   Future<bool> addSongToFirebase() async {
     try {
@@ -1107,67 +1100,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   void openSessionAdder() {}
-
-  // void addSessionToFirebase() async {
-  //   DocumentReference docRef = await FirebaseFirestore.instance
-  //       .collection('songs')
-  //       .doc(currentSong.getId())
-  //       .collection("sessions")
-  //       .add({
-  //     "subGenre": subGenreController.text,
-  //     "genre": genreController.text
-  //   });
-  //   Session newSession =
-  //       Session(docRef.id, subGenreController.text, genreController.text);
-  //   setState(() {
-  //     watchingUrls.clear();
-  //     currentSong.addSession(newSession);
-  //     currentSong.currentSession = newSession;
-  //     selectedValue = newSession;
-  //     addSessionToCurrentSong = false;
-  //     addSession = false;
-  //     focusOnBottom = false;
-  //     focusOnSearch = false;
-  //     errorMessage = "";
-  //     resetControllers();
-  //   });
-  // }
-
-  // currentSessionAdder() {
-  //   return Positioned(
-  //     top: 255,
-  //     left: (MediaQuery.of(context).size.width / 3 -
-  //                 MediaQuery.of(context).size.width / 4) /
-  //             2 -
-  //         10,
-  //     right: (MediaQuery.of(context).size.width / 3 -
-  //                 MediaQuery.of(context).size.width / 4) /
-  //             2 -
-  //         10,
-  //     child: Container(
-  //         height: 200,
-  //         width: MediaQuery.of(context).size.width / 4,
-  //         decoration: BoxDecoration(
-  //             border: Border.all(color: Colors.green, width: 2),
-  //             borderRadius: const BorderRadius.only(
-  //                 bottomRight: Radius.circular(10.0),
-  //                 bottomLeft: Radius.circular(10.0)),
-  //             color: Colors.white),
-  //         child: Stack(children: [
-  //           sessionAdder(),
-  //           IconButton(
-  //               onPressed: () => setState(() {
-  //                     addSessionToCurrentSong = false;
-  //                     errorMessage = "";
-  //                     resetControllers();
-  //                   }),
-  //               icon: const Icon(
-  //                 Icons.close,
-  //                 color: Colors.black,
-  //               ))
-  //         ])),
-  //   );
-  // }
 
   itemRemoved(CustomUrlAudioPlayer customUrlAudioPlayer) {
     addItemToWatchingUrls(customUrlAudioPlayer);

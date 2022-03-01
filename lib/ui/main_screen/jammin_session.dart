@@ -124,7 +124,7 @@ class _JammingSessionState extends State<JammingSession> {
                 child: buildGridView(),
               )),
           Positioned(
-            bottom: 20,
+            bottom: 10,
             height: 80,
             width: MediaQuery.of(context).size.width * 2 / 3,
             child: Column(children: [
@@ -143,11 +143,9 @@ class _JammingSessionState extends State<JammingSession> {
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 400,
             childAspectRatio: 1.2,
-            crossAxisSpacing: 30,
-            mainAxisSpacing: 20),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10),
         itemCount: 6,
-        // playingUrls.length + 1,
-
         itemBuilder: (BuildContext ctx, index) {
           bool followingMusician = false;
           if (index > 0) {
@@ -189,6 +187,9 @@ class _JammingSessionState extends State<JammingSession> {
         startTimer.cancel();
         startSession();
       }
+      // else if (countdown == 1){
+      //   widget.recordingsToPlay.warmUp();
+      // }
     });
   }
 

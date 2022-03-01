@@ -271,7 +271,7 @@ class RecordingsToPlay {
       }
     }
     latencyTimer =
-        Timer.periodic(const Duration(milliseconds: 60), (Timer t) async {
+        Timer.periodic(const Duration(milliseconds: 200), (Timer t) async {
       double largestDifference = getDifference();
       if (kDebugMode) {
         print(largestDifference);
@@ -295,7 +295,7 @@ class RecordingsToPlay {
       if (players[i] != null) {
         {
           num currentTime = players[i]!.videoElement.currentTime -
-              players[i]!.recording.delay;
+              players[i]!.recording.delay / 1000;
           if (currentTime > maxVal!) {
             maxVal = currentTime as double?;
           }
