@@ -9,6 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:intl/intl.dart';
 import 'package:la_ti/model/lasi_user.dart';
@@ -45,8 +47,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   List<Suggestion> suggestions = [];
 
   var isPlaying = false;
-  Timer timer = Timer(const Duration(hours: 30), () {});
-
   TextEditingController newSongController = TextEditingController();
 
   String currentSongName = "";
@@ -114,6 +114,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   bool startingNewSong = false;
 
+  TextEditingController instrumentController = TextEditingController();
+
   _MainScreenState();
 
   Duration songLength = const Duration(seconds: 0);
@@ -148,6 +150,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     subGenreController.dispose();
     genreController.dispose();
     soundRecorder.closeRecorder();
+    instrumentController.dispose();
     super.dispose();
   }
 
@@ -166,6 +169,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    print(context);
+    AppLocalizations? t = AppLocalizations.of(context);
+    print(t);
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -174,9 +180,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 onPressed: () {
                   returnToStart();
                 },
-                child: const Text(
-                  "La-Si",
-                  style: TextStyle(color: Colors.white, fontSize: 18),
+                child: Text(
+                  AppLocalizations.of(context)!.appName,
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
                 )),
             const Text(
               "beta",
@@ -187,14 +193,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             ),
             if (currentSong.name != "")
               Text(
-                "Title: " + currentSong.name,
+                AppLocalizations.of(context)!.title(currentSong.name),
+                // "",
                 style: const TextStyle(color: Colors.blue),
               ),
             const SizedBox(
               width: 80,
             ),
             if (currentSong.name != "")
-              Text("Artist: " + currentSong.artist,
+              Text(AppLocalizations.of(context)!.artist(currentSong.artist),
                   style: const TextStyle(color: Colors.blue)),
             const SizedBox(
               width: 80,
@@ -215,9 +222,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       arguments: user);
                 }
               },
-              child: const Text(
-                "Personal Section",
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                AppLocalizations.of(context)!.personalSection,
+                style: const TextStyle(color: Colors.white),
               ),
             ),
             const SizedBox(
@@ -340,33 +347,24 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           recordingsToPlay.isPlayersEmpty() &&
           watchingUrls.isNotEmpty) {
         showErrorDialog(
-            "You can only upload your recording inside a song with a pre-existing"
-            " recording, sorry.");
+          AppLocalizations.of(context)!.errorRecordingAlone,
+        );
         return false;
       }
       if (uploading) {
-        showErrorDialog('Only one file can be uploaded at a time, sorry.');
+        showErrorDialog(
+            AppLocalizations.of(context)!.errorOnlyOneSongUploadingAtATime);
         return false;
       } else if (currentSong.name == "") {
-        await showAddSongSnackBar().then((value) async {
-          if (value == null) {
-            return false;
-          } else if (value == "Yes") {
-            String? value = await getValueOfSongAdderDialog();
-            // await openSongAdderDialog().then((value) async {
-            if (value == null) {
-              return false;
-            } else if (value != "Yes") {
-              showErrorDialog("Adding song Failed, sorry.");
-              return false;
-            }
-            // });
-          } else {
-            return false;
-          }
-        });
+        bool continueUpload = await addSongToContinueUpload();
+        if (!continueUpload) {
+          return false;
+        }
       }
-
+      bool instrumentAdded = await openInstrumentAddingForRecording();
+      if (!instrumentAdded) {
+        return false;
+      }
       uploadToWasabi(vFile.openRead(), recordingsToPlay.delay, user, withVideo);
       Recording recording = Recording(
           vFile.path,
@@ -376,6 +374,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           DateFormat('yyyy-MM-dd').format(DateTime.now()),
           user.displayName!);
       recording.local = true;
+      recording.instrument = instrumentController.text;
       CustomUrlAudioPlayer customUrlAudioPlayer =
           CustomUrlAudioPlayer(recording, endSession, recordingsToPlay.delay);
       setState(() {
@@ -411,7 +410,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     setState(() {
       uploading = false;
     });
-    showSuccessSnackBar('File uploaded successfully');
+    showSuccessSnackBar(AppLocalizations.of(context)!.fileUploadSuccess);
     return url;
   }
 
@@ -432,7 +431,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         }
         // these are for later on when we have more data
         if (docData.containsKey("jamsIn")) recording.jamsIn = doc.get("jamsIn");
-        if (docData.containsKey("jamsIn")) recording.jamsIn = doc.get("jamsIn");
+        if (docData.containsKey("instrument"))
+          recording.instrument = doc.get("instrument");
         if (docData.containsKey("userUploadDisplayName")) {
           recording.uploaderDisplayName = doc.get("userUploadDisplayName");
         }
@@ -460,7 +460,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Future<void> addUrlToFirebase(String value, int delay, User user) async {
     String formattedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
     Map<String, dynamic> recordingData = {
-      "instrument": "undefined",
+      "instrument": instrumentController.text,
       "url": value,
       "delay": delay,
       "userUploadId": user.uid,
@@ -482,7 +482,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   pickAndUploadFiles() async {
     if (uploading) {
-      showErrorDialog('Only one file can be uploaded at a time, sorry.');
+      showErrorDialog(
+          AppLocalizations.of(context)!.errorOnlyOneSongUploadingAtATime);
     }
     final signInResult = await Navigator.pushNamed(context, '/signIn');
     if (signInResult != null) {
@@ -514,15 +515,17 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     Widget widget = CameraWidget(controller, cameraInitialized: initialized);
 
     return JammingSession(
-        cameraWidget: widget,
-        recordingsToPlay: recordingsToPlay,
-        soundRecorder: soundRecorder,
-        cameraController: controller,
-        stopRecording: stopVideoRecording,
-        uploadRecording: uploadRecordingToWasabi,
-        itemRemoved: itemRemoved,
-        incrementJamsUsed: incrementRecordingsUsed,
-        followArtist: followArtist);
+      cameraWidget: widget,
+      recordingsToPlay: recordingsToPlay,
+      soundRecorder: soundRecorder,
+      cameraController: controller,
+      stopRecording: stopVideoRecording,
+      uploadRecording: uploadRecordingToWasabi,
+      itemRemoved: itemRemoved,
+      incrementJamsUsed: incrementRecordingsUsed,
+      followArtist: followArtist,
+      topTreeContext: context,
+    );
   }
 
   songsSide() {
@@ -530,22 +533,27 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       alignment: Alignment.topCenter,
       child: Stack(
         children: [
-          const Positioned(
+          Positioned(
             top: 280,
             left: 14,
-            child: Text(
-              "Recordings:",
-              style: TextStyle(
-                  letterSpacing: 1.4,
-                  color: Colors.white,
-                  decoration: TextDecoration.underline,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
+            right: 14,
+            child: Directionality(
+              textDirection: Directionality.of(context),
+              child: Text(
+                AppLocalizations.of(context)!.recordings,
+                style: const TextStyle(
+                    letterSpacing: 1.4,
+                    color: Colors.white,
+                    decoration: TextDecoration.underline,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           Container(
               margin: const EdgeInsets.only(top: 280.0),
               child: RecordingsQueue(
+                topTreeContext: context,
                 watchingUrls: watchingUrls,
                 lasiUser: lasiUser,
                 recordingTapped: recordingTapped,
@@ -588,11 +596,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(8, 15, 8, 0),
           child: Column(children: [
-            const Text(
-              "To find a song search for it here.\n"
-              "If the song does not exist you have an option to add it.\n"
-              "Clicking on the bar will show available songs.\n",
-              style: TextStyle(color: Colors.white, fontSize: 13),
+            Text(
+              AppLocalizations.of(context)!.explanationOfApp,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
               textAlign: TextAlign.center,
             ),
             Container(
@@ -619,9 +625,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     style: const TextStyle(color: Colors.white),
                     textAlign: TextAlign.center,
                     controller: searchController,
-                    decoration: const InputDecoration(
-                      hintText: "Search for song",
-                      hintStyle: TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)!.search,
+                      hintStyle: const TextStyle(color: Colors.white),
                       fillColor: Colors.transparent,
                     ),
                     onChanged: (String value) {
@@ -690,9 +696,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        const SizedBox(
+        SizedBox(
           height: 20,
-          child: Text("Add Song To La-Si"),
+          child: Text(
+            AppLocalizations.of(context)!.addNewSongTitle,
+          ),
         ),
         Container(
           width: MediaQuery.of(context).size.width / 4.2,
@@ -706,9 +714,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               style: const TextStyle(color: Colors.black),
               textAlign: TextAlign.center,
               controller: songNameController,
-              decoration: const InputDecoration(
-                hintText: "Song Name",
-                hintStyle: TextStyle(color: Colors.grey),
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(context)!.songNameHint,
+                hintStyle: const TextStyle(color: Colors.grey),
                 fillColor: Colors.transparent,
               ),
             ),
@@ -729,9 +737,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               style: const TextStyle(color: Colors.black),
               textAlign: TextAlign.center,
               controller: artistController,
-              decoration: const InputDecoration(
-                hintText: "Song Artist",
-                hintStyle: TextStyle(color: Colors.grey),
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(context)!.artistNameHint,
+                hintStyle: const TextStyle(color: Colors.grey),
                 fillColor: Colors.transparent,
               ),
             ),
@@ -755,9 +763,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     resetControllers();
                   }
                 },
-                child: const Text(
-                  "Add", // "Continue",
-                  style: TextStyle(color: Colors.white),
+                child: Text(
+                  AppLocalizations.of(context)!.addSongButton, // "Continue",
+                  style: const TextStyle(color: Colors.white),
                 )),
             TextButton(
                 style: ButtonStyle(
@@ -767,9 +775,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       focusOnSearch = false;
                       resetControllers();
                     }),
-                child: const Text(
-                  "Cancel",
-                  style: TextStyle(color: Colors.white),
+                child: Text(
+                  AppLocalizations.of(context)!.cancelButton,
+                  style: const TextStyle(color: Colors.white),
                 )),
           ],
         ),
@@ -816,7 +824,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           vertical: 70, horizontal: 0),
                       child: Column(
                         children: [
-                          const Text("No songs match your search"),
+                          Text(AppLocalizations.of(context)!.noSongsMatch),
                           FocusableActionDetector(
                             onShowHoverHighlight: _handleHoveHighlight,
                             child: TextButton(
@@ -828,8 +836,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                     hovering = false;
                                   });
                                 },
-                                child:
-                                    const Text("To add a new song click here")),
+                                child: Text(
+                                  AppLocalizations.of(context)!
+                                      .addNewSongPrompt,
+                                )),
                           )
                         ],
                       ),
@@ -924,9 +934,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         });
         bool songAdded = await addSongToFirebase();
         if (songAdded) {
-          showSuccessSnackBar("Song added successfully.");
+          showSuccessSnackBar(
+            AppLocalizations.of(context)!.songUploadSuccessfully,
+          );
         } else {
-          showErrorDialog("Adding song failed.");
+          showErrorDialog(
+            AppLocalizations.of(context)!.errorSongFailed,
+          );
         }
         return songAdded;
       }
@@ -1026,6 +1040,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             if (docData.containsKey("jamsIn")) {
               recording.jamsIn = doc2.get("jamsIn");
             }
+            if (docData.containsKey("instrument")) {
+              recording.instrument = doc2.get("instrument");
+            }
             if (docData.containsKey("userUploadDisplayName")) {
               recording.uploaderDisplayName = doc2.get("userUploadDisplayName");
             }
@@ -1064,13 +1081,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 2 -
             10,
         child: uploading
-            ? const ListTile(
+            ? ListTile(
                 tileColor: Colors.blueAccent,
                 title: Text(
-                  "Loading, this may take a few minutes",
-                  style: TextStyle(color: Colors.white),
+                  AppLocalizations.of(context)!.fileUploadIndication,
+                  style: const TextStyle(color: Colors.white),
                 ),
-                trailing: CircularProgressIndicator(
+                trailing: const CircularProgressIndicator(
                   color: Colors.white,
                   strokeWidth: 3,
                 ),
@@ -1081,7 +1098,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 onPressed: pickAndUploadFiles,
                 child: Text(
                   uploadPercent == 0
-                      ? "Add Recording From Desktop"
+                      ? AppLocalizations.of(context)!.addDesktopRecordingVideo
                       : uploadPercent.toString() + " %",
                   style: const TextStyle(color: Colors.white),
                 ),
@@ -1245,24 +1262,30 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         barrierDismissible: false, // user must tap button!
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text('No Song Picked'),
+            title: Text(
+              AppLocalizations.of(context)!.emptySongRecordingTitle,
+            ),
             content: SingleChildScrollView(
               child: ListBody(
-                children: const <Widget>[
-                  Text('You can only upload your recording into a song.'),
-                  Text('Would you like to add a song?'),
+                children: <Widget>[
+                  Text(
+                    AppLocalizations.of(context)!.emptySongRecordingFirstLine,
+                  ),
+                  Text(
+                    AppLocalizations.of(context)!.emptySongRecordingSecondLine,
+                  ),
                 ],
               ),
             ),
             actions: <Widget>[
               TextButton(
-                child: const Text('Yes'),
+                child: Text(AppLocalizations.of(context)!.yes),
                 onPressed: () {
                   Navigator.of(context).pop("Yes");
                 },
               ),
               TextButton(
-                child: const Text('No'),
+                child: Text(AppLocalizations.of(context)!.no),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
@@ -1286,12 +1309,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       height: 20,
-                      child: Text("Add Song To La-Si"),
+                      child: Text(
+                        AppLocalizations.of(context)!.addNewSongTitle,
+                      ),
                     ),
                     Container(
-                      width: MediaQuery.of(context).size.width / 4.2,
+                      width: min(MediaQuery.of(context).size.width / 6, 250),
                       height: 48,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.blue, width: 2),
@@ -1302,9 +1327,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           style: const TextStyle(color: Colors.black),
                           textAlign: TextAlign.center,
                           controller: songNameController,
-                          decoration: const InputDecoration(
-                            hintText: "Song Name",
-                            hintStyle: TextStyle(color: Colors.grey),
+                          decoration: InputDecoration(
+                            hintText:
+                                AppLocalizations.of(context)!.songNameHint,
+                            hintStyle: const TextStyle(color: Colors.grey),
                             fillColor: Colors.transparent,
                           ),
                         ),
@@ -1314,7 +1340,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       height: 10,
                     ),
                     Container(
-                      width: MediaQuery.of(context).size.width / 4.2,
+                      width: min(MediaQuery.of(context).size.width / 6, 250),
                       height: 48,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.blue, width: 2),
@@ -1325,9 +1351,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           style: const TextStyle(color: Colors.black),
                           textAlign: TextAlign.center,
                           controller: artistController,
-                          decoration: const InputDecoration(
-                            hintText: "Song Artist",
-                            hintStyle: TextStyle(color: Colors.grey),
+                          decoration: InputDecoration(
+                            hintText:
+                                AppLocalizations.of(context)!.artistNameHint,
+                            hintStyle: const TextStyle(color: Colors.grey),
                             fillColor: Colors.transparent,
                           ),
                         ),
@@ -1356,9 +1383,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                 Navigator.of(context).pop("Error");
                               }
                             },
-                            child: const Text(
-                              "Add", // "Continue",
-                              style: TextStyle(color: Colors.white),
+                            child: Text(
+                              AppLocalizations.of(context)!.addSongButton,
+                              // "Continue",
+                              style: const TextStyle(color: Colors.white),
                             )),
                         TextButton(
                             style: ButtonStyle(
@@ -1370,9 +1398,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                 resetControllers();
                               });
                             },
-                            child: const Text(
-                              "Cancel",
-                              style: TextStyle(color: Colors.white),
+                            child: Text(
+                              AppLocalizations.of(context)!.cancelButton,
+                              style: const TextStyle(color: Colors.white),
                             )),
                       ],
                     ),
@@ -1407,5 +1435,173 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     watchingUrls.clear();
     recordingsToPlay.removeAllPayers();
     getOriginalUrlsToShowUser();
+  }
+
+  addSongToContinueUpload() async {
+    await showAddSongSnackBar().then((value) async {
+      if (value == null) {
+        return false;
+      } else if (value == "Yes") {
+        String? value = await getValueOfSongAdderDialog();
+        // await openSongAdderDialog().then((value) async {
+        if (value == null) {
+          return false;
+        } else if (value != "Yes") {
+          showErrorDialog(AppLocalizations.of(context)!.errorSongFailed);
+          return false;
+        }
+        // });
+      } else {
+        return false;
+      }
+    });
+    return true;
+  }
+
+  Future<bool> openInstrumentAddingForRecording(
+      [String errorMessage = ""]) async {
+    String? instrumentAdded = await openInstrumentAdder(errorMessage);
+    if (instrumentAdded == null) {
+      return false;
+    } else if (instrumentAdded == "instrumentMissing") {
+      return openInstrumentAddingForRecording(
+          AppLocalizations.of(context)!.errorInstrumentMissing);
+    } else {
+      return true;
+    }
+  }
+
+  Future<String?> openInstrumentAdder([String errorMessage = ""]) async {
+    return showDialog<String>(
+        context: context,
+        barrierDismissible: false, // user must tap button!
+        builder: (BuildContext context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0)),
+            child: SizedBox(
+                height: MediaQuery.of(context).size.height / 2,
+                width: min(MediaQuery.of(context).size.width / 4, 340),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Center(
+                        child: Text(
+                      AppLocalizations.of(context)!.instrumentPopupTitle,
+                      style: const TextStyle(fontSize: 18),
+                    )),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(AppLocalizations.of(context)!.title("")),
+                        Container(
+                          width:
+                              min(MediaQuery.of(context).size.width / 6, 250),
+                          height: 48,
+                          child: Center(child: Text(currentSong.name)),
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            border: Border.all(color: Colors.blue, width: 2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        )
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(AppLocalizations.of(context)!.artist("")),
+                        Container(
+                          width:
+                              min(MediaQuery.of(context).size.width / 6, 250),
+                          height: 48,
+                          child: Center(child: Text(currentSong.artist)),
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            border: Border.all(color: Colors.blue, width: 2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        )
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(AppLocalizations.of(context)!.instrumentOption),
+                        Container(
+                          width:
+                              min(MediaQuery.of(context).size.width / 6, 250),
+                          height: 48,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.blue, width: 2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: TextField(
+                              style: const TextStyle(color: Colors.black),
+                              textAlign: TextAlign.center,
+                              controller: instrumentController,
+                              decoration: InputDecoration(
+                                hintText: AppLocalizations.of(context)!
+                                    .instrumentHint,
+                                hintStyle: const TextStyle(color: Colors.grey),
+                                fillColor: Colors.transparent,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton(
+                            style: ButtonStyle(
+                                backgroundColor:
+                                    MaterialStateProperty.all(Colors.green)),
+                            onPressed: () async {
+                              if (instrumentController.text.isEmpty) {
+                                Navigator.of(context).pop("instrumentMissing");
+                              } else {
+                                Navigator.of(context)
+                                    .pop(instrumentController.text);
+                              }
+                            },
+                            child: Text(
+                              AppLocalizations.of(context)!.continueUpload,
+                              // "Continue",
+                              style: const TextStyle(color: Colors.white),
+                            )),
+                        TextButton(
+                            style: ButtonStyle(
+                                backgroundColor:
+                                    MaterialStateProperty.all(Colors.red)),
+                            onPressed: () {
+                              setState(() {
+                                Navigator.of(context).pop();
+                                instrumentController.clear();
+                              });
+                            },
+                            child: Text(
+                              AppLocalizations.of(context)!.cancelButton,
+                              style: const TextStyle(color: Colors.white),
+                            )),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    if (errorMessage != "")
+                      Center(
+                        child: Text(
+                          errorMessage,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      )
+                  ],
+                )),
+          );
+        });
   }
 }

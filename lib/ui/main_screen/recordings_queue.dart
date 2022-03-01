@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:la_ti/model/lasi_user.dart';
 import 'package:la_ti/utils/main_screen/custom_url_audio_player.dart';
 
@@ -6,10 +7,15 @@ class RecordingsQueue extends StatefulWidget {
   List<CustomUrlAudioPlayer> watchingUrls;
   LasiUser lasiUser;
   Function(CustomUrlAudioPlayer) recordingTapped;
+  BuildContext topTreeContext;
 
-  RecordingsQueue({
-    Key? key, required this.watchingUrls, required this.lasiUser, required this.recordingTapped
-  }) : super(key: key);
+  RecordingsQueue(
+      {Key? key,
+      required this.watchingUrls,
+      required this.lasiUser,
+      required this.recordingTapped,
+      required this.topTreeContext})
+      : super(key: key);
 
   @override
   State<RecordingsQueue> createState() => _RecordingsQueueState();
@@ -45,6 +51,7 @@ class _RecordingsQueueState extends State<RecordingsQueue> {
           mainAxisSpacing: 15),
     );
   }
+
   Widget _buildMenuItem({
     required CustomUrlAudioPlayer item,
   }) {
@@ -65,21 +72,45 @@ class _RecordingsQueueState extends State<RecordingsQueue> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 SizedBox(
-                    height: MediaQuery.of(context).size.width / 5 - 50,
+                    height: MediaQuery.of(context).size.width / 5 - 100,
                     child: item.getController()),
                 Column(
                   children: [
-                    Text(
-                      "Part of " + item.recording.jamsIn.toString() + " jams",
-                      style: const TextStyle(color: Colors.white),
+                    Directionality(
+                      textDirection: Directionality.of(widget.topTreeContext),
+                      child: Text(
+                        AppLocalizations.of(widget.topTreeContext)!
+                            .instrument(item.recording.instrument),
+                        // "Part of " + item.recording.jamsIn.toString() + " jams",
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
-                    Text(
-                      "Uploaded on " + item.recording.uploadDate,
-                      style: const TextStyle(color: Colors.white),
+                    Directionality(
+                      textDirection: Directionality.of(widget.topTreeContext),
+                      child: Text(
+                        AppLocalizations.of(widget.topTreeContext)!
+                            .jamsPartOf(item.recording.jamsIn),
+                        // "Part of " + item.recording.jamsIn.toString() + " jams",
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
-                    Text(
-                      "By " + item.recording.uploaderDisplayName,
-                      style: const TextStyle(color: Colors.white),
+                    Directionality(
+                      textDirection: Directionality.of(widget.topTreeContext),
+                      child: Text(
+                        AppLocalizations.of(widget.topTreeContext)!
+                            .dateUploaded(item.recording.uploadDate),
+                        // "Uploaded on " + item.recording.uploadDate,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    Directionality(
+                      textDirection: Directionality.of(widget.topTreeContext),
+                      child: Text(
+                        AppLocalizations.of(widget.topTreeContext)!
+                            .uploadedBy(item.recording.uploaderDisplayName),
+                        // "By " + item.recording.uploaderDisplayName,
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     )
                   ],
                 )

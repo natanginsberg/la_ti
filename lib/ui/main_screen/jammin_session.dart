@@ -4,6 +4,7 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:camera/camera.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:wakelock/wakelock.dart';
 
@@ -29,6 +30,8 @@ class JammingSession extends StatefulWidget {
 
   FlutterSoundRecorder soundRecorder;
 
+  BuildContext topTreeContext;
+
   JammingSession(
       {Key? key,
       required this.stopRecording,
@@ -39,7 +42,7 @@ class JammingSession extends StatefulWidget {
       required this.uploadRecording,
       required this.itemRemoved,
       required this.incrementJamsUsed,
-      required this.followArtist})
+      required this.followArtist, required this.topTreeContext})
       : super(key: key);
 
   @override
@@ -111,6 +114,7 @@ class _JammingSessionState extends State<JammingSession> {
 
   @override
   Widget build(BuildContext context) {
+
     return SizedBox(
       height: MediaQuery.of(context).size.height,
       width: MediaQuery.of(context).size.width * 2 / 3,
@@ -430,16 +434,16 @@ class _JammingSessionState extends State<JammingSession> {
       children: [
         TextButton(
           onPressed: () => watchRecording(),
-          child: const Text(
-            "View Recording",
-            style: TextStyle(color: Colors.white),
+          child: Text(
+            AppLocalizations.of(widget.topTreeContext)!.watchVideo,
+            style: const TextStyle(color: Colors.white),
           ),
           style: ButtonStyle(
               backgroundColor: MaterialStateProperty.all(Colors.green)),
         ),
         TextButton(
           onPressed: () => {startUpload()},
-          child: Text(uploadStarted ? "Uploading" : "Upload Recording"),
+          child: Text(uploadStarted ? AppLocalizations.of(widget.topTreeContext)!.uploading : AppLocalizations.of(widget.topTreeContext)!.upload),
           style: ButtonStyle(
               backgroundColor: MaterialStateProperty.all(Colors.yellow)),
         ),
@@ -448,9 +452,9 @@ class _JammingSessionState extends State<JammingSession> {
             // await widget.cameraController!.initialize();
             resetScreen();
           },
-          child: const Text(
-            "Reset",
-            style: TextStyle(color: Colors.white),
+          child: Text(
+            AppLocalizations.of(widget.topTreeContext)!.reset,
+            style: const TextStyle(color: Colors.white),
           ),
           style: ButtonStyle(
               backgroundColor: MaterialStateProperty.all(Colors.red)),
@@ -502,7 +506,7 @@ class _JammingSessionState extends State<JammingSession> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(10.0),
-        child: Text(userIsFollowing ? 'Following' : 'Follow Musician',
+        child: Text(userIsFollowing ? 'Following' : AppLocalizations.of(widget.topTreeContext)!.followMusician,
             style: const TextStyle(fontSize: 15, color: Colors.white)),
       ),
     );
@@ -537,9 +541,9 @@ class _JammingSessionState extends State<JammingSession> {
                   right: 10,
                   // width: 50,
                   child: SwitchListTile(
-                    title: const Text(
-                      "Video visible",
-                      style: TextStyle(color: Colors.white),
+                    title: Text(
+                      AppLocalizations.of(widget.topTreeContext)!.video,
+                      style: const TextStyle(color: Colors.white),
                     ),
                     secondary: Icon(
                       isVideoVisible ? Icons.videocam : Icons.videocam_off,
@@ -578,10 +582,10 @@ class _JammingSessionState extends State<JammingSession> {
 
   emptyRecording() {
     return Container(
-      child: const Center(
+      child: Center(
         child: Text(
-          "Click on a song to add",
-          style: TextStyle(fontSize: 20),
+          AppLocalizations.of(widget.topTreeContext)!.clickToAdd,
+          style: const TextStyle(fontSize: 20),
         ),
       ),
       decoration: BoxDecoration(

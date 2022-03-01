@@ -8,6 +8,7 @@ class Recording {
   String uploaderDisplayName;
   String uploaderId;
   bool userIsFollowing = false;
+  String instrument = "undefined";
 
   bool withVideo = true;
 

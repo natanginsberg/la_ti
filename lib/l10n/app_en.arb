@@ -3,13 +3,35 @@
     "explanationOfApp":"To find a song search for it here.\nIf the song does not exist you have an option to add it.\nClicking on the bar will show available songs.\n",
     "addSong": "Add Song",
     "followMusician": "Follow Musician",
+    "following":"Following",
     "search":"Search for a song",
     "addDesktopRecordingVideo":"Add Recording From Desktop",
-    "recordings":"Recordings",
+    "recordings":"Recordings:",
     "video":"Video Visible",
     "clickToAdd":"Click on a song to add",
-    "title":"Title",
-    "artist":"Artist",
+    "title":"Title: {value}",
+    "@title": {
+      "placeholders": {
+        "value": {
+          "type": "String",
+          "example": "I have a dream"
+        }
+      }
+    },
+    "artist":"Artist: {value}",
+    "@artist": {
+      "placeholders": {
+        "value": {
+          "type": "String",
+          "example": "I have a dream"
+        }
+      }
+    },
+    "upload":"Upload Recording",
+    "uploading":"Uploading",
+    "watchVideo":"Watch Recording",
+    "reset":"Reset",
+    "personalSection":"Personal Section",
     "noSongsMatch":"No songs match your search",
     "addNewSongPrompt":"To add a new song click here",
     "addNewSongTitle":"Add Song To La-Si",
@@ -29,7 +51,45 @@
     "errorSongFailed":"Adding song Failed, sorry.",
     "errorAlreadyExists":"The song already exists, please make sure that it is not your song",
     "errorDefinitelyExists":"The song that you want to add already exists in our system",
-    "errorNoSongEntered":"You must enter a song name and an artist"
-
-
+    "errorNoSongEntered":"You must enter a song name and an artist",
+    "errorOnlyOneSongUploadingAtATime":"Only one file can be uploaded at a time, sorry.",
+    "instrument":"Instrument: {value}",
+    "@instrument": {
+      "placeholders": {
+        "value": {
+          "type": "String"
+        }
+      }
+    },
+    "jamsPartOf":"Part of {value} jams",
+    "@jamsPartOf": {
+      "placeholders": {
+        "value": {
+          "type": "int"
+        }
+      }
+    },
+    "dateUploaded":"Uploaded on {value}",
+    "@dateUploaded": {
+      "placeholders": {
+        "value": {
+          "type": "String",
+          "example": "I have a dream"
+        }
+      }
+    },
+    "uploadedBy": "Uploaded by {value}",
+    "@uploadedBy": {
+      "placeholders": {
+        "value": {
+          "type": "String",
+          "example": "I have a dream"
+        }
+      }
+    },
+    "instrumentPopupTitle":"Add Instrument to continue uploading",
+    "instrumentOption": "Instrument:",
+    "instrumentHint":"Please enter an instrument",
+    "continueUpload":"Continue",
+    "errorInstrumentMissing":"You must enter an instrument to continue"
 }
