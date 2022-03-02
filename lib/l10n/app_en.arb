@@ -91,5 +91,11 @@
     "instrumentOption": "Instrument:",
     "instrumentHint":"Please enter an instrument",
     "continueUpload":"Continue",
-    "errorInstrumentMissing":"You must enter an instrument to continue"
+    "errorInstrumentMissing":"You must enter an instrument to continue",
+    "signOut":"Sign Out",
+    "uploadedRecordingsTitle":"Uploaded Recordings",
+    "saveRecordingsTitle":"Saved Recordings",
+    "followingArtistsTitle":"Artists Followed",
+    "savedJamsTitle":"My Jams",
+    "errorNoRecordingUploaded":"You have not uploaded any recording"
 }

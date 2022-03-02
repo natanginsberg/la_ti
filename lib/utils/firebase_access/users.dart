@@ -11,23 +11,22 @@ class FirebaseUsers {
         .update({"artistFollowed": artistsFollowed});
   }
 
-  addRecordingToUser(Song currentSong, String url, String formattedDate, User user)async {
+  addRecordingToUser(Song currentSong, String docId, User user) async {
     await FirebaseFirestore.instance
         .collection("users")
         .doc(user.uid)
         .collection("recordings")
         .doc()
         .set({
+      'recordingId': docId,
       'songName': currentSong.name,
       'songArtist': currentSong.artist,
       'songId': currentSong.getId(),
       'sessionId': currentSong.currentSession.id,
-      'url': url,
-      "dateUploaded": formattedDate
     });
   }
 
-  incrementUploads(User user)async {
+  incrementUploads(User user) async {
     await FirebaseFirestore.instance
         .collection("users")
         .doc(user.uid)

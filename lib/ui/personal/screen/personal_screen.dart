@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'uploaded_recordings.dart';
 
@@ -95,7 +96,7 @@ class _PersonalScreenState extends State<PersonalScreen>
             child: Padding(
               padding: const EdgeInsets.all(15.0),
               child: Text(
-                'Uploaded Recordings',
+                AppLocalizations.of(context)!.uploadedRecordingsTitle,
                 style: TextStyle(
                     fontSize: 20,
                     color:
@@ -131,7 +132,7 @@ class _PersonalScreenState extends State<PersonalScreen>
             child: Padding(
               padding: const EdgeInsets.all(15.0),
               child: Text(
-                'Saved Recordings',
+                AppLocalizations.of(context)!.saveRecordingsTitle,
                 style: TextStyle(
                     fontSize: 20,
                     color: itemsDisplayed == UserDisplayOption.savedRecordings
@@ -166,7 +167,7 @@ class _PersonalScreenState extends State<PersonalScreen>
           child: Padding(
             padding: const EdgeInsets.all(15.0),
             child: Text(
-              'People I Follow',
+              AppLocalizations.of(context)!.followingArtistsTitle,
               style: TextStyle(
                   fontSize: 20,
                   color: itemsDisplayed == UserDisplayOption.artistFollowed
@@ -200,7 +201,7 @@ class _PersonalScreenState extends State<PersonalScreen>
             child: Padding(
               padding: const EdgeInsets.all(15.0),
               child: Text(
-                'My Jams',
+                AppLocalizations.of(context)!.savedJamsTitle,
                 style: TextStyle(
                     fontSize: 20,
                     color: itemsDisplayed == UserDisplayOption.savedJams

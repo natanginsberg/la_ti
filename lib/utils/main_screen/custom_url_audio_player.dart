@@ -245,6 +245,9 @@ class _blobUrlPlayerState extends State<blobUrlPlayer> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        const Align(
+            alignment: Alignment.center,
+            child: CircularProgressIndicator()),
         HtmlElementView(
           key: UniqueKey(),
           viewType: widget.source,

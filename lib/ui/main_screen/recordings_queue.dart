@@ -66,7 +66,6 @@ class _RecordingsQueueState extends State<RecordingsQueue> {
         width: width,
         child: Stack(
           children: [
-            const Center(child: CircularProgressIndicator()),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

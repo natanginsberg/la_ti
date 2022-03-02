@@ -169,9 +169,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    print(context);
-    AppLocalizations? t = AppLocalizations.of(context);
-    print(t);
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -179,6 +176,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             TextButton(
                 onPressed: () {
                   returnToStart();
+                  openInstrumentAdder();
                 },
                 child: Text(
                   AppLocalizations.of(context)!.appName,
@@ -238,9 +236,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     FirebaseAuth.instance.signOut();
                     signIn();
                   },
-                  child: const Text(
-                    "Sign Out",
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    AppLocalizations.of(context)!.signOut,
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               )
@@ -262,7 +260,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             center: Alignment.center,
             radius: 1.3,
             colors: [
-              Colors.blueGrey,
+              Colors.indigoAccent,
               Colors.black,
             ],
           )),
@@ -471,10 +469,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     };
     if (currentSong.name != "") {
       // add document to songs
-      await FirebaseSongs().addRecordingToSong(currentSong, recordingData);
+      DocumentReference documentReference =
+          await FirebaseSongs().addRecordingToSong(currentSong, recordingData);
       // add doc to user for user docs
       await FirebaseUsers()
-          .addRecordingToUser(currentSong, value, formattedDate, user);
+          .addRecordingToUser(currentSong, documentReference.id, user);
       // update the amount of recordings the user has uploaded
       await FirebaseUsers().incrementUploads(user);
     }
@@ -596,11 +595,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(8, 15, 8, 0),
           child: Column(children: [
-            Text(
-              AppLocalizations.of(context)!.explanationOfApp,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
+            // Text(
+            //   AppLocalizations.of(context)!.explanationOfApp,
+            //   style: const TextStyle(color: Colors.white, fontSize: 13),
+            //   textAlign: TextAlign.center,
+            // ),
             Container(
               width: MediaQuery.of(context).size.width / 4,
               height: 48,
@@ -824,7 +823,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           vertical: 70, horizontal: 0),
                       child: Column(
                         children: [
-                          Text(AppLocalizations.of(context)!.noSongsMatch),
+                          Text(AppLocalizations.of(this.context)!.noSongsMatch),
                           FocusableActionDetector(
                             onShowHoverHighlight: _handleHoveHighlight,
                             child: TextButton(
@@ -837,7 +836,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                   });
                                 },
                                 child: Text(
-                                  AppLocalizations.of(context)!
+                                  AppLocalizations.of(this.context)!
                                       .addNewSongPrompt,
                                 )),
                           )
@@ -846,9 +845,30 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     );
                   } else {
                     return ListView.builder(
-                      itemCount: suggestions.length,
+                      itemCount: suggestions.length + 1,
                       itemBuilder: (context, index) {
-                        Suggestion suggestion = suggestions[index];
+                        if (index == 0) {
+                          return FocusableActionDetector(
+                            onShowHoverHighlight: _handleHoveHighlight,
+                            child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    focusOnBottom = !focusOnBottom;
+                                    songNameController.text =
+                                        searchController.text;
+                                    hovering = false;
+                                  });
+                                },
+                                child: Text(
+                                  AppLocalizations.of(this.context)!
+                                      .addNewSongPrompt,
+                                  style: const TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold),
+                                )),
+                          );
+                        }
+                        Suggestion suggestion = suggestions[index - 1];
                         return Column(
                           children: [
                             FocusableActionDetector(
@@ -902,9 +922,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   Future<bool> continueWithAddingSong() async {
-    if (errorMessage != DEFINITELY_EXISTS_ERROR_MESSAGE) {
+    if (errorMessage != AppLocalizations.of(context)!.errorDefinitelyExists) {
       if (inputCorrect(false)) {
-        if (errorMessage != ALREADY_EXISTS_ERROR) {
+        if (errorMessage != AppLocalizations.of(context)!.errorAlreadyExists) {
           QuerySnapshot querySnapshot =
               await FirebaseFirestore.instance.collection('allSongsData').get();
           List<Suggestion> currentSuggestions = querySnapshot.docs
@@ -915,7 +935,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   element.songArtist == artistController.text) >
               -1) {
             setState(() {
-              errorMessage = DEFINITELY_EXISTS_ERROR_MESSAGE;
+              errorMessage =
+                  AppLocalizations.of(context)!.errorDefinitelyExists;
             });
             return false;
           }
@@ -923,7 +944,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   (element) => element.songName == songNameController.text) >
               -1) {
             setState(() {
-              errorMessage = ALREADY_EXISTS_ERROR;
+              errorMessage = AppLocalizations.of(context)!.errorAlreadyExists;
             });
             return false;
           }
@@ -1476,131 +1497,143 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         context: context,
         barrierDismissible: false, // user must tap button!
         builder: (BuildContext context) {
-          return Dialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0)),
-            child: SizedBox(
-                height: MediaQuery.of(context).size.height / 2,
-                width: min(MediaQuery.of(context).size.width / 4, 340),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Center(
-                        child: Text(
-                      AppLocalizations.of(context)!.instrumentPopupTitle,
-                      style: const TextStyle(fontSize: 18),
-                    )),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return Directionality(
+            textDirection: Directionality.of(context),
+            child: Dialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0)),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SizedBox(
+                    height: MediaQuery.of(context).size.height / 2,
+                    width: min(MediaQuery.of(context).size.width / 4, 340),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(AppLocalizations.of(context)!.title("")),
-                        Container(
-                          width:
-                              min(MediaQuery.of(context).size.width / 6, 250),
-                          height: 48,
-                          child: Center(child: Text(currentSong.name)),
-                          decoration: BoxDecoration(
-                            color: Colors.grey,
-                            border: Border.all(color: Colors.blue, width: 2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        )
-                      ],
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(AppLocalizations.of(context)!.artist("")),
-                        Container(
-                          width:
-                              min(MediaQuery.of(context).size.width / 6, 250),
-                          height: 48,
-                          child: Center(child: Text(currentSong.artist)),
-                          decoration: BoxDecoration(
-                            color: Colors.grey,
-                            border: Border.all(color: Colors.blue, width: 2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        )
-                      ],
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(AppLocalizations.of(context)!.instrumentOption),
-                        Container(
-                          width:
-                              min(MediaQuery.of(context).size.width / 6, 250),
-                          height: 48,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.blue, width: 2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: TextField(
-                              style: const TextStyle(color: Colors.black),
-                              textAlign: TextAlign.center,
-                              controller: instrumentController,
-                              decoration: InputDecoration(
-                                hintText: AppLocalizations.of(context)!
-                                    .instrumentHint,
-                                hintStyle: const TextStyle(color: Colors.grey),
-                                fillColor: Colors.transparent,
+                        Center(
+                            child: Text(
+                          AppLocalizations.of(context)!.instrumentPopupTitle,
+                          style: const TextStyle(fontSize: 18),
+                        )),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(AppLocalizations.of(context)!.title("")),
+                            Container(
+                              width: min(
+                                  MediaQuery.of(context).size.width / 6, 250),
+                              height: 48,
+                              child: Center(child: Text(currentSong.name)),
+                              decoration: BoxDecoration(
+                                color: Colors.grey,
+                                border:
+                                    Border.all(color: Colors.blue, width: 2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            )
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(AppLocalizations.of(context)!.artist("")),
+                            Container(
+                              width: min(
+                                  MediaQuery.of(context).size.width / 6, 250),
+                              height: 48,
+                              child: Center(child: Text(currentSong.artist)),
+                              decoration: BoxDecoration(
+                                color: Colors.grey,
+                                border:
+                                    Border.all(color: Colors.blue, width: 2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            )
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                                AppLocalizations.of(context)!.instrumentOption),
+                            Container(
+                              width: min(
+                                  MediaQuery.of(context).size.width / 6, 250),
+                              height: 48,
+                              decoration: BoxDecoration(
+                                border:
+                                    Border.all(color: Colors.blue, width: 2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: TextField(
+                                  style: const TextStyle(color: Colors.black),
+                                  textAlign: TextAlign.center,
+                                  controller: instrumentController,
+                                  decoration: InputDecoration(
+                                    hintText: AppLocalizations.of(context)!
+                                        .instrumentHint,
+                                    hintStyle:
+                                        const TextStyle(color: Colors.grey),
+                                    fillColor: Colors.transparent,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        TextButton(
-                            style: ButtonStyle(
-                                backgroundColor:
-                                    MaterialStateProperty.all(Colors.green)),
-                            onPressed: () async {
-                              if (instrumentController.text.isEmpty) {
-                                Navigator.of(context).pop("instrumentMissing");
-                              } else {
-                                Navigator.of(context)
-                                    .pop(instrumentController.text);
-                              }
-                            },
-                            child: Text(
-                              AppLocalizations.of(context)!.continueUpload,
-                              // "Continue",
-                              style: const TextStyle(color: Colors.white),
-                            )),
-                        TextButton(
-                            style: ButtonStyle(
-                                backgroundColor:
-                                    MaterialStateProperty.all(Colors.red)),
-                            onPressed: () {
-                              setState(() {
-                                Navigator.of(context).pop();
-                                instrumentController.clear();
-                              });
-                            },
-                            child: Text(
-                              AppLocalizations.of(context)!.cancelButton,
-                              style: const TextStyle(color: Colors.white),
-                            )),
-                      ],
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    if (errorMessage != "")
-                      Center(
-                        child: Text(
-                          errorMessage,
-                          style: const TextStyle(color: Colors.red),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            TextButton(
+                                style: ButtonStyle(
+                                    backgroundColor: MaterialStateProperty.all(
+                                        Colors.green)),
+                                onPressed: () async {
+                                  if (instrumentController.text.isEmpty) {
+                                    Navigator.of(context)
+                                        .pop("instrumentMissing");
+                                  } else {
+                                    Navigator.of(context)
+                                        .pop(instrumentController.text);
+                                  }
+                                },
+                                child: Text(
+                                  AppLocalizations.of(context)!.continueUpload,
+                                  // "Continue",
+                                  style: const TextStyle(color: Colors.white),
+                                )),
+                            TextButton(
+                                style: ButtonStyle(
+                                    backgroundColor:
+                                        MaterialStateProperty.all(Colors.red)),
+                                onPressed: () {
+                                  setState(() {
+                                    Navigator.of(context).pop();
+                                    instrumentController.clear();
+                                  });
+                                },
+                                child: Text(
+                                  AppLocalizations.of(context)!.cancelButton,
+                                  style: const TextStyle(color: Colors.white),
+                                )),
+                          ],
                         ),
-                      )
-                  ],
-                )),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        if (errorMessage != "")
+                          Center(
+                            child: Text(
+                              errorMessage,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          )
+                      ],
+                    )),
+              ),
+            ),
           );
         });
   }

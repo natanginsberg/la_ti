@@ -88,30 +88,56 @@ class _UploadedRecordingsState extends State<UploadedRecordings>
         .collection("recordings")
         .get();
     for (QueryDocumentSnapshot doc in querySnapshot.docs) {
-      QuerySnapshot recordingsInSession = await FirebaseFirestore.instance
-          .collection("songs")
-          .doc(doc.get("songId"))
-          .collection("sessions")
-          .doc(doc.get("sessionId"))
-          .collection("recordings")
-          .where("userUploadId", isEqualTo: user.uid)
-          .get();
-      for (QueryDocumentSnapshot recordingDoc in recordingsInSession.docs) {
+      if ((doc.data() as Map).containsKey("recordingId")) {
+        DocumentSnapshot recordingDoc = await FirebaseFirestore.instance
+            .collection("songs")
+            .doc(doc.get("songId"))
+            .collection("sessions")
+            .doc(doc.get("sessionId"))
+            .collection("recordings")
+            .doc(doc.get("recordingId"))
+            .get();
+        // for (QueryDocumentSnapshot recordingDoc in recordingsInSession.docs) {
         if (recordingDoc.exists) {
           itemToDisplay.add(DisplayRecordingUploader(
               doc.get("songName"),
               doc.get("songArtist"),
-              doc.get("dateUploaded"),
+              recordingDoc.get("dateUploaded"),
               recordingDoc.get("jamsIn"),
-              doc.get("url"),
+              recordingDoc.get("url"),
               recordingDoc.get("delay"),
               doc.get('songId'),
               doc.get('sessionId'),
               recordingDoc.id,
               doc.id));
         }
+      } else {
+        QuerySnapshot recordingsInSession = await FirebaseFirestore.instance
+            .collection("songs")
+            .doc(doc.get("songId"))
+            .collection("sessions")
+            .doc(doc.get("sessionId"))
+            .collection("recordings")
+            .where("userUploadId", isEqualTo: user.uid)
+            .get();
+        for (QueryDocumentSnapshot recordingDoc in recordingsInSession.docs) {
+          if (recordingDoc.exists) {
+            itemToDisplay.add(DisplayRecordingUploader(
+                doc.get("songName"),
+                doc.get("songArtist"),
+                doc.get("dateUploaded"),
+                recordingDoc.get("jamsIn"),
+                doc.get("url"),
+                recordingDoc.get("delay"),
+                doc.get('songId'),
+                doc.get('sessionId'),
+                recordingDoc.id,
+                doc.id));
+          }
+        }
       }
     }
+
     return itemToDisplay;
   }
 
