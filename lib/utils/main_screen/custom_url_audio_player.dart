@@ -1,7 +1,6 @@
 import 'dart:html' as html;
 import 'dart:ui' as ui;
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:just_audio/just_audio.dart';
@@ -80,7 +79,7 @@ class CustomUrlAudioPlayer {
     videoElement.addEventListener('stalled', (event) {
       if (set) songEnded();
     });
-    videoElement.addEventListener('ended', (event) => songEnded());
+    // videoElement.addEventListener('ended', (event) => songEnded());
     videoElement.addEventListener('playing', (event) {
       if (firstTime) {
         firstTime = false;
@@ -156,8 +155,6 @@ class CustomUrlAudioPlayer {
     if (withVideo) {
       return videoElement.currentTime - delay / 1000;
     } else {
-      print("This is the current time " +
-          (await soundPlayer.getProgress()).toString());
       int? currentPosition =
           (await soundPlayer.getProgress())['progress']?.inMilliseconds;
       return (currentPosition! - delay) / 1000;
@@ -246,8 +243,7 @@ class _blobUrlPlayerState extends State<blobUrlPlayer> {
     return Stack(
       children: [
         const Align(
-            alignment: Alignment.center,
-            child: CircularProgressIndicator()),
+            alignment: Alignment.center, child: CircularProgressIndicator()),
         HtmlElementView(
           key: UniqueKey(),
           viewType: widget.source,

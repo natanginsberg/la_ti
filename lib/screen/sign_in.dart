@@ -137,10 +137,10 @@ class _SignInState extends State<SignIn> with WidgetsBindingObserver {
                             TextButton(
                                 style: ElevatedButton.styleFrom(
                                     minimumSize: const Size.fromHeight(50)),
-                                onPressed: () {
+                                onPressed: () async {
                                   timer!.cancel();
-                                  FirebaseAuth.instance.signOut();
-                                  FirebaseAuth.instance.signInAnonymously();
+                                  await FirebaseAuth.instance.signOut();
+                                  await FirebaseAuth.instance.signInAnonymously();
                                   canResendEmail = false;
                                   setState(() {
                                     emailSent = false;

@@ -9,7 +9,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:intl/intl.dart';
@@ -55,10 +54,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   late XFile vFile;
 
-  String addUrlText = "Add Url";
-
-  bool amIHovering = false;
-
   double uploadPercent = 0;
 
   TextEditingController searchController = TextEditingController();
@@ -79,17 +74,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   String errorMessage = "";
 
-  String ALREADY_EXISTS_ERROR =
-      "The song already exists, please make sure that it is not your song";
-
-  String MISSING_SONG_FIELD_ERROR = "You must enter a song name and an artist";
-
   bool addSession = false;
 
   TextEditingController genreController = TextEditingController();
 
   TextEditingController subGenreController = TextEditingController();
 
+  // ignore: non_constant_identifier_names
   var MISSING_SUB_GENRE_CHECKER_ERROR =
       "You must enter a Sub Genre name and a genre";
 
@@ -98,9 +89,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   bool hovering = false;
 
   Session selectedValue = Session("", "", "");
-
-  String DEFINITELY_EXISTS_ERROR_MESSAGE =
-      "The song that you want to add already exists in our system";
 
   bool addSessionToCurrentSong = false;
 
@@ -176,7 +164,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             TextButton(
                 onPressed: () {
                   returnToStart();
-                  openInstrumentAdder();
                 },
                 child: Text(
                   AppLocalizations.of(context)!.appName,
@@ -216,8 +203,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 if (result != null) {
                   final User user = result as User;
                   changeLasiUser(user);
-                  Navigator.pushNamed(context, '/personalScreen',
+                  await Navigator.pushNamed(context, '/personalScreen',
                       arguments: user);
+                  setState(() {});
                 }
               },
               child: Text(
@@ -233,8 +221,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(
                   onPressed: () async {
-                    FirebaseAuth.instance.signOut();
-                    signIn();
+                    await FirebaseAuth.instance.signOut();
+                    // signIn();
+                    setState(() {});
                   },
                   child: Text(
                     AppLocalizations.of(context)!.signOut,
@@ -260,7 +249,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             center: Alignment.center,
             radius: 1.3,
             colors: [
-              Colors.indigoAccent,
+              Colors.purpleAccent,
               Colors.black,
             ],
           )),
@@ -286,12 +275,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
   }
 
-  checkIfFollowing(CustomUrlAudioPlayer item) {
+  setFollowingTag(CustomUrlAudioPlayer item) {
     if (!lasiUser.anonymous) {
       if (lasiUser.isUserFollowingArtist(item.recording.uploaderId)) {
         item.recording.userIsFollowing = true;
       } else {
         item.recording.userIsFollowing = false;
+      }
+      if (lasiUser.id == item.recording.uploaderId) {
+        item.recording.local = true;
       }
     }
   }
@@ -341,6 +333,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (result != null) {
       final User user = result as User;
       changeLasiUser(user);
+      setState(() {});
       if (currentSong.name != "" &&
           recordingsToPlay.isPlayersEmpty() &&
           watchingUrls.isNotEmpty) {
@@ -424,13 +417,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             doc.get("recordingId"),
             !(doc.get("url") as String).contains("AUDIO_ONLY"));
         Map docData = doc.data() as Map;
-        if (kDebugMode) {
-          print(docData);
-        }
+
         // these are for later on when we have more data
         if (docData.containsKey("jamsIn")) recording.jamsIn = doc.get("jamsIn");
-        if (docData.containsKey("instrument"))
+        if (docData.containsKey("instrument")) {
           recording.instrument = doc.get("instrument");
+        }
         if (docData.containsKey("userUploadDisplayName")) {
           recording.uploaderDisplayName = doc.get("userUploadDisplayName");
         }
@@ -488,6 +480,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (signInResult != null) {
       final User user = signInResult as User;
       changeLasiUser(user);
+      setState(() {});
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['mp4', 'webm'],
@@ -982,7 +975,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       setState(() {
         errorMessage = sessionChecker
             ? MISSING_SUB_GENRE_CHECKER_ERROR
-            : MISSING_SONG_FIELD_ERROR;
+            : AppLocalizations.of(context)!.errorNoSongEntered;
       });
       return false;
     }
@@ -1085,6 +1078,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             refreshRecordings();
           }
         });
+        // ignore: empty_catches
       } catch (exception) {}
     }
   }
@@ -1168,18 +1162,30 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   void signIn() async {
-    if (FirebaseAuth.instance.currentUser == null) {
-      UserCredential userCredential =
-          await FirebaseAuth.instance.signInAnonymously();
-      lasiUser = LasiUser(userCredential.user!.uid, true);
-    } else if (FirebaseAuth.instance.currentUser!.isAnonymous) {
-      lasiUser = LasiUser(FirebaseAuth.instance.currentUser!.uid, true);
-    } else {
-      lasiUser = LasiUser(FirebaseAuth.instance.currentUser!.uid, false);
-      getUserFollowers();
-    }
-    setState(() {
-      userInitialized = true;
+    FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+      if (user == null) {
+        print('User is currently signed out!');
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInAnonymously();
+        lasiUser = LasiUser(userCredential.user!.uid, true);
+      } else {
+        print('User is signed in!');
+        // if (FirebaseAuth.instance.currentUser!.isAnonymous) {
+        lasiUser =
+            LasiUser(FirebaseAuth.instance.currentUser!.uid, user.isAnonymous);
+        if (mounted) {
+          setState(() {
+            userInitialized = true;
+          });
+        }
+        // } else {
+        //   lasiUser = LasiUser(FirebaseAuth.instance.currentUser!.uid, false);
+        //   getUserFollowers();
+        //   setState(() {
+        //     userInitialized = true;
+        //   });
+        // }
+      }
     });
   }
 
@@ -1206,6 +1212,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (result != null) {
       final User user = result as User;
       changeLasiUser(user);
+      setState(() {});
       if (currentlyFollowing) {
         lasiUser.removeArtist(artistId);
       } else {
@@ -1255,7 +1262,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         (item.recording as OriginalRecordings).sessionId);
     CustomUrlAudioPlayer clickedPlayer = watchingUrls.firstWhere((element) =>
         element.recording.recordingId == item.recording.recordingId);
-    checkIfFollowing(clickedPlayer);
+    setFollowingTag(clickedPlayer);
     bool songAdded = await recordingsToPlay.addCustomPlayer(clickedPlayer);
     if (songAdded) {
       watchingUrls.remove(clickedPlayer);
@@ -1268,7 +1275,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (currentSong.name == "") {
       startNewSongWithVideo(recordingTapped);
     } else {
-      checkIfFollowing(recordingTapped);
+      setFollowingTag(recordingTapped);
       bool songAdded = await recordingsToPlay.addCustomPlayer(recordingTapped);
       if (songAdded) {
         watchingUrls.remove(recordingTapped);

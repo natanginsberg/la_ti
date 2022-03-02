@@ -104,12 +104,22 @@ class RecordingsToPlay {
   }
 
   Future<Duration> getSongLength() async {
+    Duration maxDuration = const Duration(milliseconds: 0);
     for (CustomUrlAudioPlayer? player in players) {
       if (player != null) {
-        return player.getDuration();
+        try {
+          Duration duration = await player.getDuration();
+          if (duration > maxDuration) {
+            maxDuration = duration;
+          }
+        } catch (exception) {}
       }
     }
-    return Future(() => const Duration(milliseconds: 240));
+    if (maxDuration.inSeconds == 0) {
+      return Future(() => const Duration(milliseconds: 240));
+    } else {
+      return maxDuration;
+    }
   }
 
   addCustomPlayer(CustomUrlAudioPlayer player2) async {

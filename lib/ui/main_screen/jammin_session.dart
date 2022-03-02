@@ -6,6 +6,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:la_ti/utils/main_screen/video_status.dart';
 import 'package:wakelock/wakelock.dart';
 
 import '../../utils/firebase_access/analytics.dart';
@@ -42,7 +43,8 @@ class JammingSession extends StatefulWidget {
       required this.uploadRecording,
       required this.itemRemoved,
       required this.incrementJamsUsed,
-      required this.followArtist, required this.topTreeContext})
+      required this.followArtist,
+      required this.topTreeContext})
       : super(key: key);
 
   @override
@@ -60,6 +62,8 @@ class _JammingSessionState extends State<JammingSession> {
   Timer startTimer = Timer(const Duration(hours: 30), () {});
 
   Timer timer = Timer(const Duration(hours: 30), () {});
+
+  VideoStatus videoStatus = VideoStatus();
 
   bool isPlaying = false;
 
@@ -114,7 +118,6 @@ class _JammingSessionState extends State<JammingSession> {
 
   @override
   Widget build(BuildContext context) {
-
     return SizedBox(
       height: MediaQuery.of(context).size.height,
       width: MediaQuery.of(context).size.width * 2 / 3,
@@ -128,7 +131,7 @@ class _JammingSessionState extends State<JammingSession> {
                 child: buildGridView(),
               )),
           Positioned(
-            bottom: 10,
+            bottom: 5,
             height: 80,
             width: MediaQuery.of(context).size.width * 2 / 3,
             child: Column(children: [
@@ -213,29 +216,21 @@ class _JammingSessionState extends State<JammingSession> {
     setState(() {
       songStarted = true;
     });
-    if (widget.recordingsToPlay.isPlayersEmpty()) {
-      timer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) {
-        setState(() {
-          _progressValue = Duration(milliseconds: timer.tick * 100);
-        });
+    // if (widget.recordingsToPlay.isPlayersEmpty()) {
+    timer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) async {
+      setState(() {
+        _progressValue = Duration(milliseconds: timer.tick * 100);
       });
-    } else {
-      timer =
-          Timer.periodic(const Duration(milliseconds: 100), (Timer t) async {
-        double currentPosition =
-            await widget.recordingsToPlay.getCurrentPosition();
-        _progressValue =
-            Duration(milliseconds: (currentPosition * 1000).toInt());
-        setState(() {});
-        try {
-          songLength = await widget.recordingsToPlay.getSongLength();
-        } catch (e) {
-          print(e.toString());
-          songLength = const Duration(seconds: 240);
-        }
-        setState(() {});
-      });
-    }
+      if (_progressValue.inMinutes == 10) {
+        endSession();
+      }
+      try {
+        songLength = await widget.recordingsToPlay.getSongLength();
+      } catch (e) {
+        songLength = const Duration(seconds: 240);
+      }
+    });
+
   }
 
   void endSession() async {
@@ -443,7 +438,9 @@ class _JammingSessionState extends State<JammingSession> {
         ),
         TextButton(
           onPressed: () => {startUpload()},
-          child: Text(uploadStarted ? AppLocalizations.of(widget.topTreeContext)!.uploading : AppLocalizations.of(widget.topTreeContext)!.upload),
+          child: Text(uploadStarted
+              ? AppLocalizations.of(widget.topTreeContext)!.uploading
+              : AppLocalizations.of(widget.topTreeContext)!.upload),
           style: ButtonStyle(
               backgroundColor: MaterialStateProperty.all(Colors.yellow)),
         ),
@@ -506,7 +503,10 @@ class _JammingSessionState extends State<JammingSession> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(10.0),
-        child: Text(userIsFollowing ? 'Following' : AppLocalizations.of(widget.topTreeContext)!.followMusician,
+        child: Text(
+            userIsFollowing
+                ? 'Following'
+                : AppLocalizations.of(widget.topTreeContext)!.followMusician,
             style: const TextStyle(fontSize: 15, color: Colors.white)),
       ),
     );
@@ -622,7 +622,8 @@ class _JammingSessionState extends State<JammingSession> {
               color: Colors.white,
             ),
           )),
-          if (!isPlaying)
+          if (!isPlaying &&
+              !widget.recordingsToPlay.players[index - 1]!.recording.local)
             Positioned(
               bottom: 8,
               left: 25,

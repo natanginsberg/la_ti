@@ -7,9 +7,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'uploaded_recordings.dart';
 
 class PersonalScreen extends StatefulWidget {
-  PersonalScreen();
-
-  // Sing({Key key, @required this.song}) : super(key: key);
+  const PersonalScreen({Key? key}) : super(key: key);
 
   @override
   _PersonalScreenState createState() => _PersonalScreenState();
@@ -40,7 +38,6 @@ class _PersonalScreenState extends State<PersonalScreen>
   @override
   Widget build(BuildContext context) {
     user = ModalRoute.of(context)!.settings.arguments as User;
-    print(user.email);
     return WillPopScope(
         onWillPop: () async {
           return true;
