@@ -11,6 +11,7 @@ import 'package:wakelock/wakelock.dart';
 
 import '../../utils/firebase_access/analytics.dart';
 import '../../utils/main_screen/custom_url_audio_player.dart';
+import '../../utils/main_screen/monitor.dart';
 import '../../utils/main_screen/recording_to_play.dart';
 
 class JammingSession extends StatefulWidget {
@@ -63,25 +64,9 @@ class _JammingSessionState extends State<JammingSession> {
 
   Timer timer = Timer(const Duration(hours: 30), () {});
 
-  VideoStatus videoStatus = VideoStatus();
-
-  bool isPlaying = false;
-
-  bool isVideoVisible = false;
+  VideoStatus vs = VideoStatus();
 
   int countdown = 3;
-
-  bool songStarted = false;
-
-  bool songEnded = false;
-
-  bool watching = false;
-
-  bool uploadStarted = false;
-
-  bool recordVideo = false;
-
-  bool recordAudio = false;
 
   TextEditingController instrumentController = TextEditingController();
 
@@ -93,9 +78,12 @@ class _JammingSessionState extends State<JammingSession> {
 
   int currentRecorderTime = 0;
 
+  Monitor monitor = Monitor();
+
   @override
   void initState() {
     super.initState();
+    monitor.initMonitor();
     widget.recordingsToPlay.addEndFunction(endSession);
   }
 
@@ -113,6 +101,10 @@ class _JammingSessionState extends State<JammingSession> {
     if (soundPlayer.isOpen()) {
       soundPlayer.closePlayer();
     }
+    instrumentController.clear();
+    instrumentController.dispose();
+    monitor.dispose();
+
     super.dispose();
   }
 
@@ -170,10 +162,7 @@ class _JammingSessionState extends State<JammingSession> {
   playAudio() async {
     widget.incrementJamsUsed();
     setState(() {
-      isPlaying = true;
-      songEnded = false;
-      watching = false;
-      uploadStarted = false;
+      vs.playPressed();
     });
     countdown = 3;
     startTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
@@ -182,11 +171,11 @@ class _JammingSessionState extends State<JammingSession> {
       });
       if (countdown == 2) {
         widget.recordingsToPlay.warmUp();
-        if (recordVideo) {
+        if (vs.recordVideo) {
           await widget.cameraController!.startVideoRecording();
           int secondTime = DateTime.now().millisecondsSinceEpoch;
           widget.recordingsToPlay.setStartTime(secondTime);
-        } else if (recordAudio) {
+        } else if (vs.recordAudio) {
           startRecording();
         }
         // }
@@ -194,9 +183,6 @@ class _JammingSessionState extends State<JammingSession> {
         startTimer.cancel();
         startSession();
       }
-      // else if (countdown == 1){
-      //   widget.recordingsToPlay.warmUp();
-      // }
     });
   }
 
@@ -210,11 +196,11 @@ class _JammingSessionState extends State<JammingSession> {
 
   void startSession() async {
     Wakelock.enable;
-    Analytics().playAnalytics(recordAudio, recordVideo);
-    widget.recordingsToPlay.audioRecording = recordAudio && !recordVideo;
-    await widget.recordingsToPlay.playVideos(recordVideo || recordAudio);
+    Analytics().playAnalytics(vs.recordAudio, vs.recordVideo);
+    widget.recordingsToPlay.audioRecording = vs.onlyAudio();
+    await widget.recordingsToPlay.playVideos(vs.isRecording());
     setState(() {
-      songStarted = true;
+      vs.songStarted = true;
     });
     // if (widget.recordingsToPlay.isPlayersEmpty()) {
     timer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) async {
@@ -230,7 +216,6 @@ class _JammingSessionState extends State<JammingSession> {
         songLength = const Duration(seconds: 240);
       }
     });
-
   }
 
   void endSession() async {
@@ -238,26 +223,22 @@ class _JammingSessionState extends State<JammingSession> {
     if (timer.isActive) {
       timer.cancel();
     }
-    if ((recordVideo || recordAudio) && !watching) {
-      widget.stopRecording(recordVideo);
+    if (vs.recordingAndNotWatching()) {
+      widget.stopRecording(vs.recordVideo);
     }
     widget.recordingsToPlay.stopVideos();
-    if (watching) {
+    if (vs.watching) {
       widget.recordingsToPlay.previousRecordingPlayer.pause();
     } else {
       widget.recordingsToPlay.resetRecordings();
     }
-    if (watching) {
+    if (vs.watching) {
       widget.recordingsToPlay.previousRecordingPlayer.resetVideo();
     }
     setState(() {
+      monitor.stopMonitor();
       _progressValue = const Duration(seconds: 0);
-      watching = false;
-      isPlaying = false;
-      songStarted = false;
-      if (recordVideo || recordAudio) {
-        songEnded = true;
-      }
+      vs.sessionEnded();
     });
   }
 
@@ -265,7 +246,7 @@ class _JammingSessionState extends State<JammingSession> {
     // widget.recordingsToPlay.addRecordingMadeToRecordings();
     await Wakelock.enable();
     setState(() {
-      watching = true;
+      vs.watching = true;
     });
     await widget.recordingsToPlay.warmUp(true);
     await Future.delayed(const Duration(milliseconds: 1000));
@@ -273,20 +254,20 @@ class _JammingSessionState extends State<JammingSession> {
   }
 
   startUpload() async {
-    uploadStarted = true;
+    vs.uploadStarted = true;
     widget.recordingsToPlay.instrumentPlayed = instrumentController.text;
-    bool uploading = await widget.uploadRecording(recordVideo);
+    bool uploading = await widget.uploadRecording(vs.recordVideo);
     if (uploading) {
       Analytics().uploadFollowedThrough();
       setState(() {});
     } else {
-      uploadStarted = false;
+      vs.uploadStarted = false;
       Analytics().uploadNotContinued();
     }
   }
 
   aboveProgressBar() {
-    return countdown != 0 && isPlaying
+    return countdown != 0 && vs.isPlaying
         ? TextButton(
             onPressed: () {},
             child: Text(
@@ -297,7 +278,7 @@ class _JammingSessionState extends State<JammingSession> {
                   fontSize: 20),
             ),
           )
-        : !songEnded || watching || !(recordVideo || recordAudio)
+        : vs.songNotEnded()
             ? playButtonRow()
             : endRecordingOptions();
   }
@@ -321,6 +302,15 @@ class _JammingSessionState extends State<JammingSession> {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         // icons in order to center play button
+        // const Padding(
+        //   padding: EdgeInsets.all(10.0),
+        //   child: Icon(
+        //     Icons.mic,
+        //     color: Colors.transparent,
+        //     size: 35,
+        //   ),
+
+        // ),
         const Padding(
           padding: EdgeInsets.all(10.0),
           child: Icon(
@@ -329,19 +319,25 @@ class _JammingSessionState extends State<JammingSession> {
             size: 35,
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.all(10.0),
-          child: Icon(
-            Icons.mic,
-            color: Colors.transparent,
-            size: 35,
-          ),
-        ),
+        TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: monitor.on ? Colors.green : Colors.grey,
+              // primary:
+              // shape: const CircleBorder(),
+              padding: const EdgeInsets.all(10),
+            ),
+            onPressed: () {
+              setState(() {
+                monitor.change();
+              });
+            },
+            child: Text(AppLocalizations.of(widget.topTreeContext)!.monitor)),
         Align(
           alignment: Alignment.center,
           child: IconButton(
-            onPressed: () => watching || isPlaying ? endSession() : playAudio(),
-            icon: watching || isPlaying
+            onPressed: () =>
+                vs.isWatchingOrPlaying() ? endSession() : playAudio(),
+            icon: vs.isWatchingOrPlaying()
                 ? const Icon(Icons.stop)
                 : const Icon(Icons.play_arrow),
             color: Colors.white,
@@ -353,7 +349,7 @@ class _JammingSessionState extends State<JammingSession> {
             widget.recordingsToPlay.largestDifference.toString(),
             style: const TextStyle(color: Colors.white),
           ),
-        isPlaying
+        vs.isPlaying
             ? const Padding(
                 padding: EdgeInsets.all(10.0),
                 child: Icon(
@@ -365,26 +361,20 @@ class _JammingSessionState extends State<JammingSession> {
             : Center(
                 child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      primary: recordVideo ? Colors.redAccent : Colors.grey,
+                      primary: vs.recordVideo ? Colors.redAccent : Colors.grey,
                       shape: const CircleBorder(),
                       padding: const EdgeInsets.all(10),
                     ),
                     onPressed: () => setState(() {
-                          if (isVideoVisible) {
-                            recordVideo = !recordVideo;
-                            recordAudio = !recordAudio;
-                            if (recordVideo) {
-                              recordAudio = true;
-                            }
-                          }
+                          vs.videoChange();
                         }),
                     child: Icon(
                       Icons.videocam_rounded,
-                      color: recordVideo ? Colors.blue : Colors.white,
+                      color: vs.recordVideo ? Colors.blue : Colors.white,
                       size: 35,
                     )),
               ),
-        isPlaying
+        vs.isPlaying
             ? const Padding(
                 padding: EdgeInsets.all(10.0),
                 child: Icon(
@@ -393,32 +383,28 @@ class _JammingSessionState extends State<JammingSession> {
                   size: 35,
                 ),
               )
-            : Center(
-                child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      primary: recordAudio ? Colors.redAccent : Colors.grey,
-                      shape: const CircleBorder(),
-                      padding: const EdgeInsets.all(10),
-                    ),
-                    onPressed: () => setState(() {
-                          // recordAudio = !recordAudio;
-                          // if (!recordAudio) {
-                          //   recordVideo = false;
-                          // }
-                          if (isVideoVisible) {
-                            recordVideo = !recordVideo;
-                            recordAudio = !recordAudio;
-                            if (recordVideo) {
-                              recordAudio = true;
-                            }
-                          }
-                        }),
-                    child: Icon(
-                      Icons.mic,
-                      color: recordAudio ? Colors.blue : Colors.white,
-                      size: 35,
-                    )),
-              ),
+            : const Center(
+                // child: ElevatedButton(
+                //     style: ElevatedButton.styleFrom(
+                //       primary: vs.recordAudio ? Colors.redAccent : Colors.grey,
+                //       shape: const CircleBorder(),
+                //       padding: const EdgeInsets.all(10),
+                //     ),
+                //     onPressed: () => setState(() {
+                //           recordAudio = !recordAudio;
+                //           if (!recordAudio) {
+                //             recordVideo = false;
+                // }
+                // vs.micChange();
+                // }),
+                child: Icon(
+                Icons.mic,
+                color: Colors.transparent,
+                // vs.recordAudio ? Colors.blue : Colors.white,
+                size: 35,
+              )
+                // ),
+                ),
       ],
     );
   }
@@ -438,7 +424,7 @@ class _JammingSessionState extends State<JammingSession> {
         ),
         TextButton(
           onPressed: () => {startUpload()},
-          child: Text(uploadStarted
+          child: Text(vs.uploadStarted
               ? AppLocalizations.of(widget.topTreeContext)!.uploading
               : AppLocalizations.of(widget.topTreeContext)!.upload),
           style: ButtonStyle(
@@ -466,8 +452,7 @@ class _JammingSessionState extends State<JammingSession> {
     widget.recordingsToPlay.resetRecordings();
     instrumentController.clear();
     setState(() {
-      songEnded = false;
-      watching = false;
+      vs.resetScreen();
     });
   }
 
@@ -520,7 +505,7 @@ class _JammingSessionState extends State<JammingSession> {
           Center(
               child: Stack(
             children: [
-              isVideoVisible
+              vs.isVideoVisible
                   ? widget.cameraWidget!
                   : Container(
                       decoration: BoxDecoration(
@@ -535,7 +520,7 @@ class _JammingSessionState extends State<JammingSession> {
                         size: 40,
                       ),
                     ),
-              if (!isPlaying)
+              if (!vs.isPlaying)
                 Positioned(
                   left: 10,
                   right: 10,
@@ -546,15 +531,15 @@ class _JammingSessionState extends State<JammingSession> {
                       style: const TextStyle(color: Colors.white),
                     ),
                     secondary: Icon(
-                      isVideoVisible ? Icons.videocam : Icons.videocam_off,
+                      vs.isVideoVisible ? Icons.videocam : Icons.videocam_off,
                       color: Colors.white,
                     ),
-                    value: isVideoVisible,
+                    value: vs.isVideoVisible,
                     onChanged: (value) {
                       setState(() {
-                        isVideoVisible = value;
+                        vs.isVideoVisible = value;
                         if (value == false) {
-                          recordVideo = false;
+                          vs.recordVideo = false;
                         }
                       });
                     },
@@ -564,7 +549,7 @@ class _JammingSessionState extends State<JammingSession> {
                 ),
             ],
           )),
-          if (songStarted && (recordVideo || recordAudio))
+          if (vs.recordingInProgress())
             const Padding(
               padding: EdgeInsets.all(5),
               child: CircleAvatar(
@@ -575,7 +560,7 @@ class _JammingSessionState extends State<JammingSession> {
                     color: Colors.transparent,
                   )),
             ),
-          if (watching)
+          if (vs.watching)
             widget.recordingsToPlay.previousRecordingPlayer.blobPlayer
         ]));
   }
@@ -606,7 +591,8 @@ class _JammingSessionState extends State<JammingSession> {
               child: IconButton(
             onPressed: () async {
               bool problematicRemoval =
-                  index < widget.recordingsToPlay.players.length && songStarted;
+                  index < widget.recordingsToPlay.players.length &&
+                      vs.songStarted;
               if (problematicRemoval) {
                 removeProblematicVideo(index);
               } else {
@@ -622,7 +608,7 @@ class _JammingSessionState extends State<JammingSession> {
               color: Colors.white,
             ),
           )),
-          if (!isPlaying &&
+          if (!vs.isPlaying &&
               !widget.recordingsToPlay.players[index - 1]!.recording.local)
             Positioned(
               bottom: 8,

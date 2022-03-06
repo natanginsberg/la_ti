@@ -97,5 +97,6 @@
     "saveRecordingsTitle":"Saved Recordings",
     "followingArtistsTitle":"Artists Followed",
     "savedJamsTitle":"My Jams",
-    "errorNoRecordingUploaded":"You have not uploaded any recording"
+    "errorNoRecordingUploaded":"You have not uploaded any recording",
+    "monitor":"Monitor"
 }
