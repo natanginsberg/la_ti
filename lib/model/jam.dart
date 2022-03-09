@@ -1,13 +1,14 @@
 import 'jam_instruments.dart';
 
 class Jam {
+  String jamId = "";
   String songName;
   String artistName;
   String songId;
   String sessionId;
   List<String> recordings;
-  List<JamInstruments> instruments;
   String title = "";
+  List<String> instruments;
 
   Jam(
       {required this.songName,

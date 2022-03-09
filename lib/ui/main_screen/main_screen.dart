@@ -26,7 +26,6 @@ import 'package:la_ti/utils/wasabi_uploader.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../../model/jam.dart';
-import '../../model/jam_instruments.dart';
 import '../../utils/main_screen/custom_url_audio_player.dart';
 import '../../utils/main_screen/recording_to_play.dart';
 import 'jammin_session.dart';
@@ -205,8 +204,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 if (result != null) {
                   final User user = result as User;
                   changeLasiUser(user);
-                  await Navigator.pushNamed(context, '/personalScreen',
+                  final personalResult = await Navigator.pushNamed(
+                      context, '/personalScreen',
                       arguments: user);
+                  if (personalResult != null) {
+                    final jam = personalResult as Jam;
+                    openJam(jam);
+                  }
                   setState(() {});
                 }
               },
@@ -1653,8 +1657,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (result != null) {
       final User user = result as User;
       changeLasiUser(user);
-      List<JamInstruments> jamInstruments =
-          recordingsToPlay.getJamInstruments();
+      List<String> jamInstruments = recordingsToPlay.getJamInstruments();
       List<String> recordingIds = recordingsToPlay.getRecordingIds();
       await FirebaseUsers().addJamToUser(
           Jam(
@@ -1668,5 +1671,23 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       return true;
     }
     return false;
+  }
+
+  void openJam(Jam jam) async {
+    recordingsToPlay.removeAllPayers();
+    startingNewSong = true;
+    await getSongFromFirebase(jam.songId, jam.sessionId);
+    for (String id in jam.recordings) {
+      CustomUrlAudioPlayer clickedPlayer = watchingUrls
+          .firstWhere((element) => element.recording.recordingId == id);
+      setFollowingTag(clickedPlayer);
+      bool songAdded = await recordingsToPlay.addCustomPlayer(clickedPlayer);
+      if (songAdded) {
+        watchingUrls.remove(clickedPlayer);
+        setState(() {});
+      }
+    }
+    startingNewSong = false;
+    setState(() {});
   }
 }

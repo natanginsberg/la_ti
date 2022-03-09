@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:la_ti/model/jam.dart';
 
+import 'jams_saved.dart';
 import 'uploaded_recordings.dart';
 
 class PersonalScreen extends StatefulWidget {
@@ -58,7 +60,12 @@ class _PersonalScreenState extends State<PersonalScreen>
               ),
               topRow(),
               if (itemsDisplayed == UserDisplayOption.uploadedRecordings)
-                Flexible(child: UploadedRecordings(user))
+                Flexible(child: UploadedRecordings())
+              else if (itemsDisplayed == UserDisplayOption.savedJams)
+                Flexible(
+                    child: JamsSaved(
+                  openJam: openJam,
+                ))
             ],
           ),
         )));
@@ -213,6 +220,10 @@ class _PersonalScreenState extends State<PersonalScreen>
         ),
       ],
     );
+  }
+
+  openJam(Jam jam) {
+    Navigator.of(context).pop(jam);
   }
 }
 

@@ -183,25 +183,29 @@ class RecordingsToPlay {
         if (record && !delaySet) {
           timer =
               Timer.periodic(const Duration(milliseconds: 10), (Timer t) async {
-            if (!player.isPaused()) {
-              timer!.cancel();
-              setDelay(DateTime.now().millisecondsSinceEpoch);
-            } else if (isPlayersEmpty()) {
-              timer!.cancel();
-            }
-          });
+                if (!player.isPaused()) {
+                  timer!.cancel();
+                  setDelay(DateTime
+                      .now()
+                      .millisecondsSinceEpoch);
+                } else if (isPlayersEmpty()) {
+                  timer!.cancel();
+                }
+              });
         }
       }
     }
     latencyTimer =
         Timer.periodic(const Duration(milliseconds: 50), (Timer t) async {
-      double largestDifference = getDifference();
-      print(largestDifference);
-      latencyTimer!.cancel();
-    });
+          double largestDifference = getDifference();
+          print(largestDifference);
+          latencyTimer!.cancel();
+        });
     if (isPlayersEmpty()) {
       if (record && !delaySet) {
-        setDelay(DateTime.now().millisecondsSinceEpoch);
+        setDelay(DateTime
+            .now()
+            .millisecondsSinceEpoch);
       }
     }
   }
@@ -220,8 +224,8 @@ class RecordingsToPlay {
   void addRecordingMadeToRecordings() {
     previousRecordingPlayer =
         CustomUrlAudioPlayer(Recording(recordingPath, delay, ""), () {
-      songEnded();
-    }, delay);
+          songEnded();
+        }, delay);
   }
 
   Future<void> playRecording() async {
@@ -263,7 +267,7 @@ class RecordingsToPlay {
       if (customUrlAudioPlayer != null) {
         if (customUrlAudioPlayer.recording.uploaderId == uploaderId) {
           customUrlAudioPlayer.recording.userIsFollowing =
-              !customUrlAudioPlayer.recording.userIsFollowing;
+          !customUrlAudioPlayer.recording.userIsFollowing;
         }
       }
     }
@@ -287,12 +291,12 @@ class RecordingsToPlay {
     }
     latencyTimer =
         Timer.periodic(const Duration(milliseconds: 200), (Timer t) async {
-      double largestDifference = getDifference();
-      if (kDebugMode) {
-        print(largestDifference);
-      }
-      latencyTimer!.cancel();
-    });
+          double largestDifference = getDifference();
+          if (kDebugMode) {
+            print(largestDifference);
+          }
+          latencyTimer!.cancel();
+        });
     if (watchRecording) {
       previousRecordingPlayer.stop();
     }
@@ -349,13 +353,15 @@ class RecordingsToPlay {
     return ids;
   }
 
-  List<JamInstruments> getJamInstruments() {
-    List<JamInstruments> jamInstruments = [];
+  List<String> getJamInstruments() {
+    List<String> jamInstruments = [];
     for (var i = 0; i < 5; i++) {
       if (players[i] != null) {
-        jamInstruments.add(JamInstruments(
-            instrument: players[i]!.recording.instrument,
-            displayName: players[i]!.recording.uploaderDisplayName));
+        // jamInstruments.add(JamInstruments(
+        //     instrument: players[i]!.recording.instrument,
+        //     displayName: players[i]!.recording.uploaderDisplayName));
+        jamInstruments.add(players[i]!.recording.uploaderDisplayName + ": " +
+            players[i]!.recording.instrument);
       }
     }
     return jamInstruments;

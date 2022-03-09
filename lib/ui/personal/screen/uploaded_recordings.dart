@@ -12,9 +12,7 @@ import 'package:la_ti/utils/wasabi_uploader.dart';
 import '../../../utils/main_screen/custom_url_audio_player.dart';
 
 class UploadedRecordings extends StatefulWidget {
-  User user;
-
-  UploadedRecordings(this.user);
+  UploadedRecordings();
 
   // Sing({Key key, @required this.song}) : super(key: key);
 

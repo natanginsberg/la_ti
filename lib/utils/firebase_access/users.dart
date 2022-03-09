@@ -29,11 +29,6 @@ class FirebaseUsers {
   }
 
   addJamToUser(Jam jam, User user) async {
-    List<String> instruments = [];
-    for (JamInstruments jamInstruments in jam.instruments) {
-      instruments
-          .add(jamInstruments.displayName + ": " + jamInstruments.instrument);
-    }
     await FirebaseFirestore.instance
         .collection("users")
         .doc(user.uid)
@@ -42,10 +37,10 @@ class FirebaseUsers {
         .set({
       'recordings': jam.recordings,
       'songName': jam.songName,
-      'songArtist': jam.artistName,
+      'artistName': jam.artistName,
       'songId': jam.songId,
       'sessionId': jam.sessionId,
-      'instruments': instruments,
+      'instruments': jam.instruments,
       "title": jam.title
     });
   }
