@@ -155,6 +155,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.4"
+  dart_webrtc:
+    dependency: transitive
+    description:
+      name: dart_webrtc
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.4"
   dropdown_button2:
     dependency: "direct main"
     description:
@@ -336,6 +343,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_webrtc:
+    dependency: "direct main"
+    description:
+      name: flutter_webrtc
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.8.3"
   html:
     dependency: transitive
     description:
@@ -754,6 +768,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.2.0"
+  webrtc_interface:
+    dependency: transitive
+    description:
+      name: webrtc_interface
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.2"
   webview_flutter:
     dependency: transitive
     description:

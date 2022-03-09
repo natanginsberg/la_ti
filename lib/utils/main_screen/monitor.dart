@@ -1,28 +1,63 @@
 import 'dart:html' as html;
 
 class Monitor {
+  // FlutterSoundPlayer audio = FlutterSoundPlayer();
+
   var audio = html.AudioElement();
   bool on = true;
 
-  initMonitor() {
-    html.window.navigator.getUserMedia(audio: true).then((stream) {
+  initMonitor() async {
+    var constraints = {
+      'audio': {
+        'echoCancellation': true,
+        'echoCancellationType': {'ideal': " system "},
+        'channelCount': 1,
+        'sampleRate': {'ideal': 'AUDIO_SAMPLE_RATE'},
+        'noiseSuppression': false,
+        'autoGainControl': true,
+        'googEchoCancellation': true,
+        'googAutoGainControl': true,
+        'googExperimentalAutoGainControl': true,
+        'googNoiseSuppression': false,
+        'googExperimentalNoiseSuppression': false,
+        'googHighpassFilter': true,
+        'googTypingNoiseDetection': true,
+        'googBeamforming': false,
+        'googArrayGeometry': false,
+        'googAudioMirroring': true,
+        'googNoiseReduction': false,
+        'mozNoiseSuppression': false,
+        'mozAutoGainControl': false,
+        'latency': 0.01,
+      },
+      'video': false,
+    };
+    html.window.navigator.mediaDevices!
+        .getUserMedia(constraints)
+        .then((stream) async {
+      // MediaStream098 stream = await navigator.mediaDevices.getUserMedia({
+      //   'audio': true,
+      // });
+      //
       audio
         ..autoplay = false
+        ..preload = "auto"
         ..srcObject = stream;
-      // document.body.append(audio);
+      // html.document.body?.append(audio);
+      audio.play();
+      // });
+      // audio.play();
     });
-    audio.play();
   }
 
   stopMonitor() {
-    audio.pause();
+    dispose();
     on = false;
   }
 
   startMonitor() {
-    audio.play();
+    initMonitor();
     on = true;
-    // audio.currentTime = 0;
   }
 
   isOn() {

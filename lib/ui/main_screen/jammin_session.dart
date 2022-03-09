@@ -22,6 +22,8 @@ class JammingSession extends StatefulWidget {
 
   VoidCallback incrementJamsUsed;
 
+  VoidCallback addJam;
+
   Function(bool) stopRecording;
 
   Function(bool) uploadRecording;
@@ -45,7 +47,7 @@ class JammingSession extends StatefulWidget {
       required this.itemRemoved,
       required this.incrementJamsUsed,
       required this.followArtist,
-      required this.topTreeContext})
+      required this.topTreeContext, required this.addJam})
       : super(key: key);
 
   @override
@@ -302,15 +304,6 @@ class _JammingSessionState extends State<JammingSession> {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         // icons in order to center play button
-        // const Padding(
-        //   padding: EdgeInsets.all(10.0),
-        //   child: Icon(
-        //     Icons.mic,
-        //     color: Colors.transparent,
-        //     size: 35,
-        //   ),
-
-        // ),
         const Padding(
           padding: EdgeInsets.all(10.0),
           child: Icon(
@@ -319,6 +312,19 @@ class _JammingSessionState extends State<JammingSession> {
             size: 35,
           ),
         ),
+        // Padding(
+        //   padding: const EdgeInsets.all(10.0),
+        //   child: IconButton(
+        //     onPressed: () {
+        //       monitor.dispose();
+        //     },
+        //     icon: const Icon(
+        //       Icons.mic,
+        //       color: Colors.red,
+        //       size: 35,
+        //     ),
+        //   ),
+        // ),
         TextButton(
             style: TextButton.styleFrom(
               backgroundColor: monitor.on ? Colors.green : Colors.grey,
@@ -374,7 +380,7 @@ class _JammingSessionState extends State<JammingSession> {
                       size: 35,
                     )),
               ),
-        vs.isPlaying
+        vs.isPlaying || widget.recordingsToPlay.notEnoughRecordingsToSaveJam()
             ? const Padding(
                 padding: EdgeInsets.all(10.0),
                 child: Icon(
@@ -383,28 +389,34 @@ class _JammingSessionState extends State<JammingSession> {
                   size: 35,
                 ),
               )
-            : const Center(
-                // child: ElevatedButton(
-                //     style: ElevatedButton.styleFrom(
-                //       primary: vs.recordAudio ? Colors.redAccent : Colors.grey,
-                //       shape: const CircleBorder(),
-                //       padding: const EdgeInsets.all(10),
-                //     ),
-                //     onPressed: () => setState(() {
-                //           recordAudio = !recordAudio;
-                //           if (!recordAudio) {
-                //             recordVideo = false;
-                // }
-                // vs.micChange();
-                // }),
-                child: Icon(
-                Icons.mic,
-                color: Colors.transparent,
-                // vs.recordAudio ? Colors.blue : Colors.white,
-                size: 35,
-              )
-                // ),
+            : Container(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.all(Radius.circular(50.0)),
+                  gradient: LinearGradient(
+                    colors: <Color>[
+                      Color(0xFF0D47A1),
+                      Color(0xFF1976D2),
+                      Color(0xFF0D47A1),
+                    ],
+                  ),
                 ),
+                child: TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      // primary:
+                      // shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(10),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        // FirebaseUsers().addJamToUser(jam, )
+                      });
+                    },
+                    child: Text(
+                      AppLocalizations.of(widget.topTreeContext)!.saveJam,
+                      style: const TextStyle(color: Colors.white),
+                    )),
+              ),
       ],
     );
   }

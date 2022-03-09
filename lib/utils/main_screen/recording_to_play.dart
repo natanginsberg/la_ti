@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:la_ti/model/jam_instruments.dart';
 import 'package:la_ti/model/recording.dart';
 
 import 'custom_url_audio_player.dart';
@@ -326,5 +327,33 @@ class RecordingsToPlay {
     for (var i = 0; i < 5; i++) {
       players[i] = null;
     }
+  }
+
+  bool notEnoughRecordingsToSaveJam() {
+    int counter = 0;
+    for (var i = 0; i < 5; i++) {
+      if (players[i] != null) counter++;
+    }
+    return counter < 2;
+  }
+
+  List<String> getRecordingIds() {
+    List<String> ids = [];
+    for (var i = 0; i < 5; i++) {
+      if (players[i] != null) ids.add(players[i]!.recording.recordingId);
+    }
+    return ids;
+  }
+
+  List<JamInstruments> getJamInstruments() {
+    List<JamInstruments> jamInstruments = [];
+    for (var i = 0; i < 5; i++) {
+      if (players[i] != null) {
+        jamInstruments.add(JamInstruments(
+            instrument: players[i]!.recording.instrument,
+            displayName: players[i]!.recording.uploaderDisplayName));
+      }
+    }
+    return jamInstruments;
   }
 }
