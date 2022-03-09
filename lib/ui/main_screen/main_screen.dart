@@ -176,10 +176,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               style: TextStyle(fontSize: 10),
             ),
             SizedBox(
-              width: MediaQuery
-                  .of(context)
-                  .size
-                  .width / 4,
+              width: MediaQuery.of(context).size.width / 4,
             ),
             if (currentSong.name != "")
               Text(
@@ -242,47 +239,41 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       ),
       body: MaterialApp(
           home: WillPopScope(
-            onWillPop: () {
-              return Future.value(true);
-            },
-            child: Scaffold(
-                body: Container(
-                  // height: MediaQuery.of(context).size.height,
-                  // width: MediaQuery.of(context).size.width,
-                  decoration: const BoxDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment.center,
-                        radius: 1.3,
-                        colors: [
-                          Colors.white,
-                          Colors.black,
-                        ],
-                      )),
-                  child: Column(
-                    children: [
-                      Flexible(
-                        child: Row(
-                          children: [
-                            SizedBox(
-                                width: MediaQuery
-                                    .of(context)
-                                    .size
-                                    .width / 3,
-                                child: songsSide()),
-                            SizedBox(
-                              child: playSide(),
-                              width: 2 * MediaQuery
-                                  .of(context)
-                                  .size
-                                  .width / 3,
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
+        onWillPop: () {
+          return Future.value(true);
+        },
+        child: Scaffold(
+            body: Container(
+          // height: MediaQuery.of(context).size.height,
+          // width: MediaQuery.of(context).size.width,
+          decoration: const BoxDecoration(
+              gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.3,
+            colors: [
+              Colors.white,
+              Colors.black,
+            ],
           )),
+          child: Column(
+            children: [
+              Flexible(
+                child: Row(
+                  children: [
+                    SizedBox(
+                        width: MediaQuery.of(context).size.width / 3,
+                        child: songsSide()),
+                    SizedBox(
+                      child: playSide(),
+                      width: 2 * MediaQuery.of(context).size.width / 3,
+                    )
+                  ],
+                ),
+              ),
+            ],
+          ),
+        )),
+      )),
     );
   }
 
@@ -316,9 +307,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       vFile = XFile(path!);
     }
     Recording recording =
-    Recording(vFile.path, recordingsToPlay.delay, "", videoRecorded);
+        Recording(vFile.path, recordingsToPlay.delay, "", videoRecorded);
     CustomUrlAudioPlayer customUrlAudioPlayer =
-    CustomUrlAudioPlayer(recording, endSession, recordingsToPlay.delay);
+        CustomUrlAudioPlayer(recording, endSession, recordingsToPlay.delay);
     // addItemToWatchingUrls(customUrlAudioPlayer);
     recordingsToPlay.setRecording(customUrlAudioPlayer);
     // customUrlAudioPlayer.initialize();
@@ -378,7 +369,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       recording.local = true;
       recording.instrument = instrumentController.text;
       CustomUrlAudioPlayer customUrlAudioPlayer =
-      CustomUrlAudioPlayer(recording, endSession, recordingsToPlay.delay);
+          CustomUrlAudioPlayer(recording, endSession, recordingsToPlay.delay);
       setState(() {
         watchingUrls.add(customUrlAudioPlayer);
       });
@@ -387,8 +378,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return false;
   }
 
-  Future<String> uploadToWasabi(Stream<Uint8List> fileStream, int delay,
-      User user, bool withVideo,
+  Future<String> uploadToWasabi(
+      Stream<Uint8List> fileStream, int delay, User user, bool withVideo,
       [bool mp4File = false]) async {
     setState(() {
       uploading = true;
@@ -451,7 +442,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           recording.songId = doc.get("songId");
         }
         CustomUrlAudioPlayer customUrlAudioPlayer =
-        CustomUrlAudioPlayer(recording, endSession, doc.get("delay"));
+            CustomUrlAudioPlayer(recording, endSession, doc.get("delay"));
         addItemToWatchingUrls(customUrlAudioPlayer);
         // }
       }
@@ -473,7 +464,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (currentSong.name != "") {
       // add document to songs
       DocumentReference documentReference =
-      await FirebaseSongs().addRecordingToSong(currentSong, recordingData);
+          await FirebaseSongs().addRecordingToSong(currentSong, recordingData);
       // add doc to user for user docs
       await FirebaseUsers()
           .addRecordingToUser(currentSong, documentReference.id, user);
@@ -506,7 +497,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         Recording recording = Recording(path, 0, "");
         recording.local = true;
         CustomUrlAudioPlayer customUrlAudioPlayer =
-        CustomUrlAudioPlayer(recording, endSession, 0);
+            CustomUrlAudioPlayer(recording, endSession, 0);
         setState(() {
           watchingUrls.add(customUrlAudioPlayer);
         });
@@ -562,8 +553,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 lasiUser: lasiUser,
                 recordingTapped: recordingTapped,
               )
-            // _buildMenuList()
-          ),
+              // _buildMenuList()
+              ),
           // if (currentSong.sessions.isNotEmpty) buildSessionDropdown(),
           if (currentSong.sessions.isNotEmpty) addSongButton(),
           // if (addSessionToCurrentSong) currentSessionAdder(),
@@ -606,17 +597,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             //   textAlign: TextAlign.center,
             // ),
             Container(
-              width: MediaQuery
-                  .of(context)
-                  .size
-                  .width / 4,
+              width: MediaQuery.of(context).size.width / 4,
               height: 48,
               decoration: BoxDecoration(
                   border: Border.all(color: Colors.green, width: 2),
                   borderRadius: focusOnSearch
                       ? const BorderRadius.only(
-                      topRight: Radius.circular(10.0),
-                      topLeft: Radius.circular(10.0))
+                          topRight: Radius.circular(10.0),
+                          topLeft: Radius.circular(10.0))
                       : BorderRadius.circular(50),
                   gradient: const RadialGradient(
                     center: Alignment.center,
@@ -677,7 +665,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (searchController.text.length < textSearched.length) {
       searchedValue = searchController.text;
       QuerySnapshot querySnapshot =
-      await FirebaseFirestore.instance.collection('allSongsData').get();
+          await FirebaseFirestore.instance.collection('allSongsData').get();
       if (searchController.text == "") {
         currentSuggestions = querySnapshot.docs
             .map((doc) => Suggestion(doc["songName"], doc["songArtist"]))
@@ -710,10 +698,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           ),
         ),
         Container(
-          width: MediaQuery
-              .of(context)
-              .size
-              .width / 4.2,
+          width: MediaQuery.of(context).size.width / 4.2,
           height: 48,
           decoration: BoxDecoration(
             border: Border.all(color: Colors.blue, width: 2),
@@ -736,10 +721,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           height: 10,
         ),
         Container(
-          width: MediaQuery
-              .of(context)
-              .size
-              .width / 4.2,
+          width: MediaQuery.of(context).size.width / 4.2,
           height: 48,
           decoration: BoxDecoration(
             border: Border.all(color: Colors.blue, width: 2),
@@ -783,8 +765,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             TextButton(
                 style: ButtonStyle(
                     backgroundColor: MaterialStateProperty.all(Colors.red)),
-                onPressed: () =>
-                    setState(() {
+                onPressed: () => setState(() {
                       focusOnBottom = false;
                       focusOnSearch = false;
                       resetControllers();
@@ -812,10 +793,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   suggestionBox() {
     return Container(
       height: 200,
-      width: MediaQuery
-          .of(context)
-          .size
-          .width / 4,
+      width: MediaQuery.of(context).size.width / 4,
       decoration: BoxDecoration(
           border: Border.all(color: Colors.green, width: 2),
           borderRadius: const BorderRadius.only(
@@ -825,113 +803,113 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       child: focusOnBottom
           ? addSongOption()
           : FutureBuilder(
-        builder: (context, suggestionsSnap) {
-          if (suggestionsSnap.connectionState == ConnectionState.none &&
-              suggestionsSnap.hasData) {
-            return Container();
-          } else if (suggestionsSnap.connectionState ==
-              ConnectionState.waiting) {
-            return const CupertinoActivityIndicator();
-          } else {
-            List<Suggestion> suggestions =
-            suggestionsSnap.data as List<Suggestion>;
-            if (suggestions.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 70, horizontal: 0),
-                child: Column(
-                  children: [
-                    Text(AppLocalizations.of(this.context)!.noSongsMatch),
-                    FocusableActionDetector(
-                      onShowHoverHighlight: _handleHoveHighlight,
-                      child: TextButton(
-                          onPressed: () {
-                            setState(() {
-                              focusOnBottom = !focusOnBottom;
-                              songNameController.text =
-                                  searchController.text;
-                              hovering = false;
-                            });
-                          },
-                          child: Text(
-                            AppLocalizations.of(this.context)!
-                                .addNewSongPrompt,
-                          )),
-                    )
-                  ],
-                ),
-              );
-            } else {
-              return ListView.builder(
-                itemCount: suggestions.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return FocusableActionDetector(
-                      onShowHoverHighlight: _handleHoveHighlight,
-                      child: TextButton(
-                          onPressed: () {
-                            setState(() {
-                              focusOnBottom = !focusOnBottom;
-                              songNameController.text =
-                                  searchController.text;
-                              hovering = false;
-                            });
-                          },
-                          child: Text(
-                            AppLocalizations.of(this.context)!
-                                .addNewSongPrompt,
-                            style: const TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold),
-                          )),
+              builder: (context, suggestionsSnap) {
+                if (suggestionsSnap.connectionState == ConnectionState.none &&
+                    suggestionsSnap.hasData) {
+                  return Container();
+                } else if (suggestionsSnap.connectionState ==
+                    ConnectionState.waiting) {
+                  return const CupertinoActivityIndicator();
+                } else {
+                  List<Suggestion> suggestions =
+                      suggestionsSnap.data as List<Suggestion>;
+                  if (suggestions.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 70, horizontal: 0),
+                      child: Column(
+                        children: [
+                          Text(AppLocalizations.of(this.context)!.noSongsMatch),
+                          FocusableActionDetector(
+                            onShowHoverHighlight: _handleHoveHighlight,
+                            child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    focusOnBottom = !focusOnBottom;
+                                    songNameController.text =
+                                        searchController.text;
+                                    hovering = false;
+                                  });
+                                },
+                                child: Text(
+                                  AppLocalizations.of(this.context)!
+                                      .addNewSongPrompt,
+                                )),
+                          )
+                        ],
+                      ),
+                    );
+                  } else {
+                    return ListView.builder(
+                      itemCount: suggestions.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return FocusableActionDetector(
+                            onShowHoverHighlight: _handleHoveHighlight,
+                            child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    focusOnBottom = !focusOnBottom;
+                                    songNameController.text =
+                                        searchController.text;
+                                    hovering = false;
+                                  });
+                                },
+                                child: Text(
+                                  AppLocalizations.of(this.context)!
+                                      .addNewSongPrompt,
+                                  style: const TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold),
+                                )),
+                          );
+                        }
+                        Suggestion suggestion = suggestions[index - 1];
+                        return Column(
+                          children: [
+                            FocusableActionDetector(
+                              onShowHoverHighlight: _handleHoveHighlight,
+                              child: TextButton(
+                                  onPressed: () {
+                                    String id = suggestion.songName +
+                                        " " +
+                                        suggestion.songArtist;
+                                    getSongFromFirebase(id);
+                                    setState(() {
+                                      focusOnSearch = false;
+                                      focusOnBottom = false;
+                                      hovering = false;
+                                    });
+                                  },
+                                  child: RichText(
+                                    text: TextSpan(
+                                      text: suggestion.songName,
+                                      style: const TextStyle(
+                                          color: Colors.blue,
+                                          fontWeight: FontWeight.bold),
+                                      children: <TextSpan>[
+                                        const TextSpan(
+                                            text: ' -  ',
+                                            style: TextStyle(
+                                                fontStyle: FontStyle.italic)),
+                                        TextSpan(
+                                            text: suggestion.songArtist,
+                                            style: const TextStyle(
+                                                color: Colors.blueAccent,
+                                                fontStyle: FontStyle.italic)),
+                                      ],
+                                    ),
+                                  )),
+                            )
+                          ],
+                        );
+                      },
                     );
                   }
-                  Suggestion suggestion = suggestions[index - 1];
-                  return Column(
-                    children: [
-                      FocusableActionDetector(
-                        onShowHoverHighlight: _handleHoveHighlight,
-                        child: TextButton(
-                            onPressed: () {
-                              String id = suggestion.songName +
-                                  " " +
-                                  suggestion.songArtist;
-                              getSongFromFirebase(id);
-                              setState(() {
-                                focusOnSearch = false;
-                                focusOnBottom = false;
-                                hovering = false;
-                              });
-                            },
-                            child: RichText(
-                              text: TextSpan(
-                                text: suggestion.songName,
-                                style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.bold),
-                                children: <TextSpan>[
-                                  const TextSpan(
-                                      text: ' -  ',
-                                      style: TextStyle(
-                                          fontStyle: FontStyle.italic)),
-                                  TextSpan(
-                                      text: suggestion.songArtist,
-                                      style: const TextStyle(
-                                          color: Colors.blueAccent,
-                                          fontStyle: FontStyle.italic)),
-                                ],
-                              ),
-                            )),
-                      )
-                    ],
-                  );
-                },
-              );
-            }
-          }
-        },
-        future: getSuggestions(),
-      ),
+                }
+              },
+              future: getSuggestions(),
+            ),
     );
   }
 
@@ -944,13 +922,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       if (inputCorrect(false)) {
         if (errorMessage != AppLocalizations.of(context)!.errorAlreadyExists) {
           QuerySnapshot querySnapshot =
-          await FirebaseFirestore.instance.collection('allSongsData').get();
+              await FirebaseFirestore.instance.collection('allSongsData').get();
           List<Suggestion> currentSuggestions = querySnapshot.docs
               .map((doc) => Suggestion(doc["songName"], doc["songArtist"]))
               .toList();
           if (currentSuggestions.indexWhere((element) =>
-          element.songName == songNameController.text &&
-              element.songArtist == artistController.text) >
+                  element.songName == songNameController.text &&
+                  element.songArtist == artistController.text) >
               -1) {
             setState(() {
               errorMessage =
@@ -990,8 +968,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   bool inputCorrect(bool sessionChecker) {
     if ((sessionChecker &&
-        subGenreController.text != "" &&
-        genreController.text != "") ||
+            subGenreController.text != "" &&
+            genreController.text != "") ||
         (!sessionChecker &&
             songNameController.text != "" &&
             artistController.text != "")) {
@@ -1051,7 +1029,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   getSongFromFirebase(String id, [String defaultSessionId = ""]) async {
     DocumentSnapshot documentSnapshot =
-    await FirebaseFirestore.instance.collection('songs').doc(id).get();
+        await FirebaseFirestore.instance.collection('songs').doc(id).get();
     currentSong = Song(
         name: documentSnapshot.get("songName") as String,
         artist: documentSnapshot.get("songArtist") as String);
@@ -1062,7 +1040,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         .get();
     for (var doc in querySnapshot.docs) {
       Session newSession =
-      Session(doc.id, doc.get("subGenre"), doc.get("genre"));
+          Session(doc.id, doc.get("subGenre"), doc.get("genre"));
       try {
         await FirebaseFirestore.instance
             .collection('songs')
@@ -1074,7 +1052,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             .then((QuerySnapshot querySnapshot2) {
           for (var doc2 in querySnapshot2.docs) {
             Recording recording =
-            Recording(doc2.get("url"), doc2.get("delay"), doc2.id);
+                Recording(doc2.get("url"), doc2.get("delay"), doc2.id);
             Map docData = doc2.data() as Map;
             if (docData.containsKey("jamsIn")) {
               recording.jamsIn = doc2.get("jamsIn");
@@ -1112,49 +1090,37 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return Positioned(
         height: 35,
         top: 225,
-        left: (MediaQuery
-            .of(context)
-            .size
-            .width / 3 -
-            MediaQuery
-                .of(context)
-                .size
-                .width / 4.2) /
-            2 -
+        left: (MediaQuery.of(context).size.width / 3 -
+                    MediaQuery.of(context).size.width / 4.2) /
+                2 -
             10,
-        right: (MediaQuery
-            .of(context)
-            .size
-            .width / 3 -
-            MediaQuery
-                .of(context)
-                .size
-                .width / 4.2) /
-            2 -
+        right: (MediaQuery.of(context).size.width / 3 -
+                    MediaQuery.of(context).size.width / 4.2) /
+                2 -
             10,
         child: uploading
             ? ListTile(
-          tileColor: Colors.blueAccent,
-          title: Text(
-            AppLocalizations.of(context)!.fileUploadIndication,
-            style: const TextStyle(color: Colors.white),
-          ),
-          trailing: const CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 3,
-          ),
-        )
+                tileColor: Colors.blueAccent,
+                title: Text(
+                  AppLocalizations.of(context)!.fileUploadIndication,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                trailing: const CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 3,
+                ),
+              )
             : TextButton(
-          style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all(Colors.blue)),
-          onPressed: pickAndUploadFiles,
-          child: Text(
-            uploadPercent == 0
-                ? AppLocalizations.of(context)!.addDesktopRecordingVideo
-                : uploadPercent.toString() + " %",
-            style: const TextStyle(color: Colors.white),
-          ),
-        ));
+                style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(Colors.blue)),
+                onPressed: pickAndUploadFiles,
+                child: Text(
+                  uploadPercent == 0
+                      ? AppLocalizations.of(context)!.addDesktopRecordingVideo
+                      : uploadPercent.toString() + " %",
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ));
   }
 
   void refreshRecordings() {
@@ -1163,7 +1129,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     });
     for (Recording recording in selectedValue.recordings) {
       CustomUrlAudioPlayer customUrlAudioPlayer =
-      CustomUrlAudioPlayer(recording, endSession, recording.delay);
+          CustomUrlAudioPlayer(recording, endSession, recording.delay);
       addItemToWatchingUrls(customUrlAudioPlayer);
     }
   }
@@ -1203,7 +1169,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       if (user == null) {
         print('User is currently signed out!');
         UserCredential userCredential =
-        await FirebaseAuth.instance.signInAnonymously();
+            await FirebaseAuth.instance.signInAnonymously();
         lasiUser = LasiUser(userCredential.user!.uid, true);
       } else {
         print('User is signed in!');
@@ -1298,7 +1264,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     await getSongFromFirebase((item.recording as OriginalRecordings).songId,
         (item.recording as OriginalRecordings).sessionId);
     CustomUrlAudioPlayer clickedPlayer = watchingUrls.firstWhere((element) =>
-    element.recording.recordingId == item.recording.recordingId);
+        element.recording.recordingId == item.recording.recordingId);
     setFollowingTag(clickedPlayer);
     bool songAdded = await recordingsToPlay.addCustomPlayer(clickedPlayer);
     if (songAdded) {
@@ -1369,14 +1335,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.0)),
             child: SizedBox(
-                height: MediaQuery
-                    .of(context)
-                    .size
-                    .height / 2,
-                width: min(MediaQuery
-                    .of(context)
-                    .size
-                    .width / 4, 340),
+                height: MediaQuery.of(context).size.height / 2,
+                width: min(MediaQuery.of(context).size.width / 4, 340),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -1387,10 +1347,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       ),
                     ),
                     Container(
-                      width: min(MediaQuery
-                          .of(context)
-                          .size
-                          .width / 6, 250),
+                      width: min(MediaQuery.of(context).size.width / 6, 250),
                       height: 48,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.blue, width: 2),
@@ -1403,7 +1360,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           controller: songNameController,
                           decoration: InputDecoration(
                             hintText:
-                            AppLocalizations.of(context)!.songNameHint,
+                                AppLocalizations.of(context)!.songNameHint,
                             hintStyle: const TextStyle(color: Colors.grey),
                             fillColor: Colors.transparent,
                           ),
@@ -1414,10 +1371,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       height: 10,
                     ),
                     Container(
-                      width: min(MediaQuery
-                          .of(context)
-                          .size
-                          .width / 6, 250),
+                      width: min(MediaQuery.of(context).size.width / 6, 250),
                       height: 48,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.blue, width: 2),
@@ -1430,7 +1384,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           controller: artistController,
                           decoration: InputDecoration(
                             hintText:
-                            AppLocalizations.of(context)!.artistNameHint,
+                                AppLocalizations.of(context)!.artistNameHint,
                             hintStyle: const TextStyle(color: Colors.grey),
                             fillColor: Colors.transparent,
                           ),
@@ -1446,7 +1400,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                         TextButton(
                             style: ButtonStyle(
                                 backgroundColor:
-                                MaterialStateProperty.all(Colors.green)),
+                                    MaterialStateProperty.all(Colors.green)),
                             onPressed: () async {
                               bool songAdded = await continueWithAddingSong();
                               if (songAdded) {
@@ -1468,7 +1422,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                         TextButton(
                             style: ButtonStyle(
                                 backgroundColor:
-                                MaterialStateProperty.all(Colors.red)),
+                                    MaterialStateProperty.all(Colors.red)),
                             onPressed: () {
                               setState(() {
                                 Navigator.of(context).pop();
@@ -1561,40 +1515,30 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: SizedBox(
-                    height: MediaQuery
-                        .of(context)
-                        .size
-                        .height / 2,
-                    width: min(MediaQuery
-                        .of(context)
-                        .size
-                        .width / 4, 340),
+                    height: MediaQuery.of(context).size.height / 2,
+                    width: min(MediaQuery.of(context).size.width / 4, 340),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Center(
                             child: Text(
-                              AppLocalizations.of(context)!
-                                  .instrumentPopupTitle,
-                              style: const TextStyle(fontSize: 18),
-                            )),
+                          AppLocalizations.of(context)!.instrumentPopupTitle,
+                          style: const TextStyle(fontSize: 18),
+                        )),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(AppLocalizations.of(context)!.title("")),
                             Container(
                               width: min(
-                                  MediaQuery
-                                      .of(context)
-                                      .size
-                                      .width / 6, 250),
+                                  MediaQuery.of(context).size.width / 6, 250),
                               height: 48,
                               child: Center(child: Text(currentSong.name)),
                               decoration: BoxDecoration(
                                 color: Colors.grey,
                                 border:
-                                Border.all(color: Colors.blue, width: 2),
+                                    Border.all(color: Colors.blue, width: 2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             )
@@ -1606,16 +1550,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                             Text(AppLocalizations.of(context)!.artist("")),
                             Container(
                               width: min(
-                                  MediaQuery
-                                      .of(context)
-                                      .size
-                                      .width / 6, 250),
+                                  MediaQuery.of(context).size.width / 6, 250),
                               height: 48,
                               child: Center(child: Text(currentSong.artist)),
                               decoration: BoxDecoration(
                                 color: Colors.grey,
                                 border:
-                                Border.all(color: Colors.blue, width: 2),
+                                    Border.all(color: Colors.blue, width: 2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             )
@@ -1628,14 +1569,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                 AppLocalizations.of(context)!.instrumentOption),
                             Container(
                               width: min(
-                                  MediaQuery
-                                      .of(context)
-                                      .size
-                                      .width / 6, 250),
+                                  MediaQuery.of(context).size.width / 6, 250),
                               height: 48,
                               decoration: BoxDecoration(
                                 border:
-                                Border.all(color: Colors.blue, width: 2),
+                                    Border.all(color: Colors.blue, width: 2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Center(
@@ -1647,7 +1585,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                     hintText: AppLocalizations.of(context)!
                                         .instrumentHint,
                                     hintStyle:
-                                    const TextStyle(color: Colors.grey),
+                                        const TextStyle(color: Colors.grey),
                                     fillColor: Colors.transparent,
                                   ),
                                 ),
@@ -1679,7 +1617,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                             TextButton(
                                 style: ButtonStyle(
                                     backgroundColor:
-                                    MaterialStateProperty.all(Colors.red)),
+                                        MaterialStateProperty.all(Colors.red)),
                                 onPressed: () {
                                   setState(() {
                                     Navigator.of(context).pop();
@@ -1710,14 +1648,25 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         });
   }
 
-  void addJam() {
-    List<JamInstruments> jamInstruments = recordingsToPlay.getJamInstruments();
-    List<String> recordingIds = recordingsToPlay.getRecordingIds();
-    FirebaseUsers().addJamToUser(Jam(sessionId: currentSong.currentSession.id,
-        songId: currentSong.getId(),
-        songName: currentSong.name,
-        artistName: currentSong.artist,
-        instruments: jamInstruments,
-        recordings: recordingIds), user);
+  Future<bool> addJam() async {
+    final result = await Navigator.pushNamed(context, '/signIn');
+    if (result != null) {
+      final User user = result as User;
+      changeLasiUser(user);
+      List<JamInstruments> jamInstruments =
+          recordingsToPlay.getJamInstruments();
+      List<String> recordingIds = recordingsToPlay.getRecordingIds();
+      await FirebaseUsers().addJamToUser(
+          Jam(
+              sessionId: currentSong.currentSession.id,
+              songId: currentSong.getId(),
+              songName: currentSong.name,
+              artistName: currentSong.artist,
+              instruments: jamInstruments,
+              recordings: recordingIds),
+          user);
+      return true;
+    }
+    return false;
   }
 }

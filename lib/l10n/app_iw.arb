@@ -14,7 +14,7 @@
     "upload":"העלה ביצוע",
     "uploading":"הביצוע עולה",
     "watchVideo":"צפה בביצוע",
-    "reset":"איפוס הכל",
+    "reset":"מחק",
     "personalSection":"איזור אישי",
     "noSongsMatch":"השיר לא נמצא לנו במאגר",
     "addNewSongPrompt":"להוספת שיר חדש למאגר לחץ פה",
@@ -53,7 +53,8 @@
     "savedJamsTitle":"הרכבים שמורים",
     "errorNoRecordingUploaded":"עוד לא העלית ביצוע",
     "monitor":"מוניטור",
-    "saveJam": "שמור הרכב"
+    "saveJam": "שמור הרכב",
+    "jamSaved":"ההרכב נשמר"
 
 
 

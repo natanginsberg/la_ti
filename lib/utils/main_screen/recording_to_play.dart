@@ -34,6 +34,8 @@ class RecordingsToPlay {
 
   double largestDifference = 0;
 
+  bool jamAdded = false;
+
   RecordingsToPlay();
 
   String instrumentPlayed = "";
@@ -124,6 +126,7 @@ class RecordingsToPlay {
   }
 
   addCustomPlayer(CustomUrlAudioPlayer player2) async {
+    jamAdded = false;
     if (kDebugMode) {
       print(player2.recording.url);
     }
@@ -159,6 +162,7 @@ class RecordingsToPlay {
   }
 
   removePlayer(int index, [bool playing = false]) async {
+    jamAdded = false;
     players[index] = null;
   }
 

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:la_ti/model/jam_instruments.dart';
 
 import '../../model/jam.dart';
 import '../../model/song.dart';
@@ -28,6 +29,11 @@ class FirebaseUsers {
   }
 
   addJamToUser(Jam jam, User user) async {
+    List<String> instruments = [];
+    for (JamInstruments jamInstruments in jam.instruments) {
+      instruments
+          .add(jamInstruments.displayName + ": " + jamInstruments.instrument);
+    }
     await FirebaseFirestore.instance
         .collection("users")
         .doc(user.uid)
@@ -39,6 +45,8 @@ class FirebaseUsers {
       'songArtist': jam.artistName,
       'songId': jam.songId,
       'sessionId': jam.sessionId,
+      'instruments': instruments,
+      "title": jam.title
     });
   }
 

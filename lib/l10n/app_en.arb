@@ -99,5 +99,6 @@
     "savedJamsTitle":"My Jams",
     "errorNoRecordingUploaded":"You have not uploaded any recording",
     "monitor":"Monitor",
-    "saveJam": "Save Jam"
+    "saveJam": "Save Jam",
+    "jamSaved":"Jam Saved"
 }

@@ -22,7 +22,7 @@ class JammingSession extends StatefulWidget {
 
   VoidCallback incrementJamsUsed;
 
-  VoidCallback addJam;
+  Function addJam;
 
   Function(bool) stopRecording;
 
@@ -400,17 +400,21 @@ class _JammingSessionState extends State<JammingSession> {
                     ],
                   ),
                 ),
-                child: TextButton(
+                child: widget.recordingsToPlay.jamAdded? Text(AppLocalizations.of(widget.topTreeContext)!.jamSaved,
+                  style: const TextStyle(color: Colors.white),):TextButton(
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       // primary:
                       // shape: const CircleBorder(),
                       padding: const EdgeInsets.all(10),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        // FirebaseUsers().addJamToUser(jam, )
-                      });
+                    onPressed: () async {
+                      bool jamAdded = await widget.addJam();
+                      if (jamAdded) {
+                        setState(() {
+                          widget.recordingsToPlay.jamAdded = true;
+                        });
+                      }
                     },
                     child: Text(
                       AppLocalizations.of(widget.topTreeContext)!.saveJam,

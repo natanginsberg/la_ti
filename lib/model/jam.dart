@@ -7,6 +7,7 @@ class Jam {
   String sessionId;
   List<String> recordings;
   List<JamInstruments> instruments;
+  String title = "";
 
   Jam(
       {required this.songName,
