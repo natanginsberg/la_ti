@@ -255,7 +255,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             center: Alignment.center,
             radius: 1.3,
             colors: [
-              Colors.white,
+              Colors.indigoAccent,
               Colors.black,
             ],
           )),

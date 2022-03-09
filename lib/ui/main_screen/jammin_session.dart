@@ -163,7 +163,6 @@ class _JammingSessionState extends State<JammingSession> {
   }
 
   playAudio() async {
-    widget.incrementJamsUsed();
     setState(() {
       vs.playPressed();
     });
@@ -417,6 +416,7 @@ class _JammingSessionState extends State<JammingSession> {
                           if (widget.recordingsToPlay.jamAdded) {
                             bool jamAdded = await widget.addJam();
                             if (jamAdded) {
+                              widget.incrementJamsUsed();
                               setState(() {
                                 widget.recordingsToPlay.jamAdded = true;
                               });
