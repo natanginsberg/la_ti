@@ -47,7 +47,8 @@ class JammingSession extends StatefulWidget {
       required this.itemRemoved,
       required this.incrementJamsUsed,
       required this.followArtist,
-      required this.topTreeContext, required this.addJam})
+      required this.topTreeContext,
+      required this.addJam})
       : super(key: key);
 
   @override
@@ -400,26 +401,32 @@ class _JammingSessionState extends State<JammingSession> {
                     ],
                   ),
                 ),
-                child: widget.recordingsToPlay.jamAdded? Text(AppLocalizations.of(widget.topTreeContext)!.jamSaved,
-                  style: const TextStyle(color: Colors.white),):TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      // primary:
-                      // shape: const CircleBorder(),
-                      padding: const EdgeInsets.all(10),
-                    ),
-                    onPressed: () async {
-                      bool jamAdded = await widget.addJam();
-                      if (jamAdded) {
-                        setState(() {
-                          widget.recordingsToPlay.jamAdded = true;
-                        });
-                      }
-                    },
-                    child: Text(
-                      AppLocalizations.of(widget.topTreeContext)!.saveJam,
-                      style: const TextStyle(color: Colors.white),
-                    )),
+                child: widget.recordingsToPlay.jamAdded
+                    ? Text(
+                        AppLocalizations.of(widget.topTreeContext)!.jamSaved,
+                        style: const TextStyle(color: Colors.white),
+                      )
+                    : TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          // primary:
+                          // shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(10),
+                        ),
+                        onPressed: () async {
+                          if (widget.recordingsToPlay.jamAdded) {
+                            bool jamAdded = await widget.addJam();
+                            if (jamAdded) {
+                              setState(() {
+                                widget.recordingsToPlay.jamAdded = true;
+                              });
+                            }
+                          }
+                        },
+                        child: Text(
+                          AppLocalizations.of(widget.topTreeContext)!.saveJam,
+                          style: const TextStyle(color: Colors.white),
+                        )),
               ),
       ],
     );
