@@ -118,21 +118,10 @@ class _RecordingsQueueState extends State<RecordingsQueue> {
             GestureDetector(
               onTap: () async {
                 widget.recordingTapped(item);
-                // if (currentSong.name == "") {
-                //   startNewSongWithVideo(item);
-                // } else {
-                //   checkIfFollowing(item);
-                //   bool songAdded = await recordingsToPlay.addCustomPlayer(item);
-                //   if (songAdded) {
-                //     widget.watchingUrls.remove(item);
-                //     setState(() {});
-                //   }
-                // }
               },
               child: Container(
                 width: MediaQuery.of(context).size.width / 2 - 50,
                 color: Colors.transparent,
-                // child: Center(child: VideoPlayer(item.getController())),
               ),
             ),
             if (!betaTesting)
