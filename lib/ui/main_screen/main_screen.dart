@@ -27,6 +27,7 @@ import 'package:universal_html/html.dart' as html;
 
 import '../../model/jam.dart';
 import '../../utils/main_screen/custom_url_audio_player.dart';
+import '../../utils/main_screen/metronome.dart';
 import '../../utils/main_screen/recording_to_play.dart';
 import 'jammin_session.dart';
 
@@ -192,7 +193,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             const SizedBox(
               width: 80,
             ),
-            Text(uploadError, style: const TextStyle(color: Colors.red)),
+            metronomeArea(),
             const Expanded(
               child: SizedBox(
                 width: 10,
@@ -1689,5 +1690,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
     startingNewSong = false;
     setState(() {});
+  }
+
+  Widget metronomeArea() {
+    return MetronomeControl();
   }
 }

@@ -73,6 +73,7 @@ class Monitor {
   }
 
   void dispose() {
+    print("disposed");
     audio.pause();
     audio.removeAttribute('srcObject'); // empty source
     audio.load();
