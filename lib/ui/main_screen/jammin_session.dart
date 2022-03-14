@@ -149,16 +149,11 @@ class _JammingSessionState extends State<JammingSession> {
             mainAxisSpacing: 10),
         itemCount: 6,
         itemBuilder: (BuildContext ctx, index) {
-          bool followingMusician = false;
-          if (index > 0) {
-            followingMusician =
-                widget.recordingsToPlay.isUserFollowing(index - 1);
-          }
           return index == 0
               ? currentUserSession()
               : widget.recordingsToPlay.players[index - 1] == null
                   ? emptyRecording()
-                  : recording(index, followingMusician);
+                  : recording(index);
         });
   }
 
@@ -499,34 +494,34 @@ class _JammingSessionState extends State<JammingSession> {
     await removeVideo(index);
   }
 
-  subscribeButton(bool userIsFollowing, String uploaderId) {
-    return ElevatedButton(
-      onPressed: () async {
-        bool userSignIn =
-            await widget.followArtist(uploaderId, userIsFollowing);
-        if (userSignIn) {
-          widget.recordingsToPlay.changeSubscription(uploaderId);
-          setState(() {});
-        }
-      },
-      style: ElevatedButton.styleFrom(
-        primary: Colors.blueAccent,
-        side: const BorderSide(color: Colors.blueAccent),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
-        elevation: 15.0,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Text(
-            userIsFollowing
-                ? 'Following'
-                : AppLocalizations.of(widget.topTreeContext)!.followMusician,
-            style: const TextStyle(fontSize: 15, color: Colors.white)),
-      ),
-    );
-  }
+  // subscribeButton(bool userIsFollowing, String uploaderId) {
+  //   return ElevatedButton(
+  //     onPressed: () async {
+  //       bool userSignIn =
+  //           await widget.followArtist(uploaderId, userIsFollowing);
+  //       if (userSignIn) {
+  //         widget.recordingsToPlay.changeSubscription(uploaderId);
+  //         setState(() {});
+  //       }
+  //     },
+  //     style: ElevatedButton.styleFrom(
+  //       primary: Colors.blueAccent,
+  //       side: const BorderSide(color: Colors.blueAccent),
+  //       shape: RoundedRectangleBorder(
+  //         borderRadius: BorderRadius.circular(25),
+  //       ),
+  //       elevation: 15.0,
+  //     ),
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(10.0),
+  //       child: Text(
+  //           userIsFollowing
+  //               ? 'Following'
+  //               : AppLocalizations.of(widget.topTreeContext)!.followMusician,
+  //           style: const TextStyle(fontSize: 15, color: Colors.white)),
+  //     ),
+  //   );
+  // }
 
   currentUserSession() {
     return Container(
@@ -611,7 +606,7 @@ class _JammingSessionState extends State<JammingSession> {
     );
   }
 
-  recording(int index, bool followingMusician) {
+  recording(int index) {
     return Container(
       width: 400,
       color: Colors.transparent,
@@ -639,17 +634,6 @@ class _JammingSessionState extends State<JammingSession> {
               color: Colors.white,
             ),
           )),
-          if (!vs.isPlaying &&
-              !widget.recordingsToPlay.players[index - 1]!.recording.local)
-            Positioned(
-              bottom: 8,
-              left: 25,
-              right: 25,
-              child: subscribeButton(
-                  followingMusician,
-                  widget.recordingsToPlay.players[index - 1]!.recording
-                      .uploaderId),
-            ),
           Positioned(
             left: 20,
             right: 20,

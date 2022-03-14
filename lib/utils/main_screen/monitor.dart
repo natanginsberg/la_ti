@@ -6,7 +6,7 @@ class Monitor {
   var audio = html.AudioElement();
   bool on = false;
 
-  initMonitor() async {
+  initMonitor([bool play = false]) async {
     var constraints = {
       'audio': {
         'echoCancellation': true,
@@ -45,8 +45,9 @@ class Monitor {
         ..srcObject = stream;
       // html.document.body?.append(audio);
       // });
-      // audio.play();
-    });
+      if (play) {
+        audio.play();
+      }});
   }
 
   stopMonitor() {
@@ -55,7 +56,7 @@ class Monitor {
   }
 
   startMonitor() {
-    initMonitor();
+    initMonitor(true);
     on = true;
   }
 
