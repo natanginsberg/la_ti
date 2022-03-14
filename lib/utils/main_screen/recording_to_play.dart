@@ -286,7 +286,7 @@ class RecordingsToPlay {
         player.videoElement.volume = 0;
       }
     }
-    latencyTimer = Timer(const Duration(milliseconds: 350), () {
+    latencyTimer = Timer(const Duration(milliseconds: 150), () {
       _resetVideos(watchRecording, false);
     });
   }
