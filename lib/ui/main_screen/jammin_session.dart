@@ -172,7 +172,7 @@ class _JammingSessionState extends State<JammingSession> {
         countdown--;
       });
       if (countdown == 2) {
-        widget.recordingsToPlay.warmUp();
+        // widget.recordingsToPlay.warmUp();
         if (vs.recordVideo) {
           await widget.cameraController!.startVideoRecording();
           int secondTime = DateTime.now().millisecondsSinceEpoch;
@@ -180,10 +180,14 @@ class _JammingSessionState extends State<JammingSession> {
         } else if (vs.recordAudio) {
           startRecording();
         }
+
         // }
       } else if (countdown == 0) {
         startTimer.cancel();
         startSession();
+      }
+      else if (countdown == 1) {
+        widget.recordingsToPlay.warmUp();
       }
     });
   }
@@ -206,9 +210,13 @@ class _JammingSessionState extends State<JammingSession> {
     });
     // if (widget.recordingsToPlay.isPlayersEmpty()) {
     timer = Timer.periodic(const Duration(milliseconds: 100), (Timer t) async {
+      if (!vs.isPlaying){
+        timer.cancel();
+      }
       setState(() {
         _progressValue = Duration(milliseconds: timer.tick * 100);
       });
+
       if (_progressValue.inMinutes == 10) {
         endSession();
       }
@@ -228,7 +236,7 @@ class _JammingSessionState extends State<JammingSession> {
     if (vs.recordingAndNotWatching()) {
       widget.stopRecording(vs.recordVideo);
     }
-    widget.recordingsToPlay.stopVideos();
+    await widget.recordingsToPlay.stopVideos();
     if (vs.watching) {
       widget.recordingsToPlay.previousRecordingPlayer.pause();
     } else {

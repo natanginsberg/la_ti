@@ -30,7 +30,7 @@
     "emptySongRecordingSecondLine":"להוסיף שיר למאגר?",
     "fileUploadSuccess":".ההעלאה בוצעה בהצלחה",
     "songUploadSuccessfully":"השיר התווסף בהצלחה.",
-    "fileUploadIndication":"מעלה, זה יכול לקחת כמה דקות",
+    "fileUploadIndication":"מעלה, אנא המתן",
     "errorRecordingAlone":"שגיאה, ניתן להעלות ביצוע על ביצוע קיים.",
     "errorSongFailed":"שגיאה, השיר לא התווסף למאגר.",
     "errorAlreadyExists":"השיר כבר קיים לנו במערכת, נא לוודא שזה לא השיר שלך.",

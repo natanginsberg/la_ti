@@ -106,6 +106,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   TextEditingController instrumentController = TextEditingController();
 
+  final ScrollController _suggestionController = ScrollController();
+
   _MainScreenState();
 
   Duration songLength = const Duration(seconds: 0);
@@ -175,8 +177,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               "beta",
               style: TextStyle(fontSize: 10),
             ),
-            SizedBox(
-              width: MediaQuery.of(context).size.width / 4,
+            const Expanded(
+              child: SizedBox(
+                width: 20,
+              ),
             ),
             if (currentSong.name != "")
               Text(
@@ -256,7 +260,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             center: Alignment.center,
             radius: 1.3,
             colors: [
-              Colors.indigoAccent,
+              Colors.teal,
               Colors.black,
             ],
           )),
@@ -659,7 +663,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 ),
               ]),
             ),
-            if ((focusOnSearch) || focusOnBottom) suggestionBox()
+            if (focusOnSearch || focusOnBottom) suggestionBox()
           ]),
         ),
       ),
@@ -845,70 +849,89 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       ),
                     );
                   } else {
-                    return ListView.builder(
-                      itemCount: suggestions.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return FocusableActionDetector(
-                            onShowHoverHighlight: _handleHoveHighlight,
-                            child: TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    focusOnBottom = !focusOnBottom;
-                                    songNameController.text =
-                                        searchController.text;
-                                    hovering = false;
-                                  });
-                                },
-                                child: Text(
-                                  AppLocalizations.of(this.context)!
-                                      .addNewSongPrompt,
-                                  style: const TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold),
-                                )),
-                          );
-                        }
-                        Suggestion suggestion = suggestions[index - 1];
-                        return Column(
-                          children: [
-                            FocusableActionDetector(
+                    return
+                        // Focus(
+                        // onFocusChange: (hasFocus) {
+                        //   if (!hovering) {
+                        //     setState(() {
+                        //       focusOnSearch = hasFocus;
+                        //     });
+                        //   }
+                        // },
+                        // child:
+                        RawScrollbar(
+                      interactive: true,
+                      thumbColor: Colors.blueAccent,
+                      controller: _suggestionController,
+                      isAlwaysShown: true,
+                      child: ListView.builder(
+                        controller: _suggestionController,
+                        itemCount: suggestions.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return FocusableActionDetector(
                               onShowHoverHighlight: _handleHoveHighlight,
                               child: TextButton(
                                   onPressed: () {
-                                    String id = suggestion.songName +
-                                        " " +
-                                        suggestion.songArtist;
-                                    getSongFromFirebase(id);
                                     setState(() {
-                                      focusOnSearch = false;
-                                      focusOnBottom = false;
+                                      focusOnBottom = !focusOnBottom;
+                                      songNameController.text =
+                                          searchController.text;
                                       hovering = false;
                                     });
                                   },
-                                  child: RichText(
-                                    text: TextSpan(
-                                      text: suggestion.songName,
-                                      style: const TextStyle(
-                                          color: Colors.blue,
-                                          fontWeight: FontWeight.bold),
-                                      children: <TextSpan>[
-                                        const TextSpan(
-                                            text: ' -  ',
-                                            style: TextStyle(
-                                                fontStyle: FontStyle.italic)),
-                                        TextSpan(
-                                            text: suggestion.songArtist,
-                                            style: const TextStyle(
-                                                color: Colors.blueAccent,
-                                                fontStyle: FontStyle.italic)),
-                                      ],
-                                    ),
+                                  child: Text(
+                                    AppLocalizations.of(this.context)!
+                                        .addNewSongPrompt,
+                                    style: const TextStyle(
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.bold),
                                   )),
-                            )
-                          ],
-                        );
-                      },
+                            );
+                          }
+                          Suggestion suggestion = suggestions[index - 1];
+                          return Column(
+                            children: [
+                              FocusableActionDetector(
+                                onShowHoverHighlight: _handleHoveHighlight,
+                                child: TextButton(
+                                    onPressed: () {
+                                      String id = suggestion.songName +
+                                          " " +
+                                          suggestion.songArtist;
+                                      getSongFromFirebase(id);
+                                      setState(() {
+                                        focusOnSearch = false;
+                                        focusOnBottom = false;
+                                        hovering = false;
+                                      });
+                                    },
+                                    child: RichText(
+                                      text: TextSpan(
+                                        text: suggestion.songName,
+                                        style: const TextStyle(
+                                            color: Colors.blue,
+                                            fontWeight: FontWeight.bold),
+                                        children: <TextSpan>[
+                                          const TextSpan(
+                                              text: ' -  ',
+                                              style: TextStyle(
+                                                  fontStyle: FontStyle.italic)),
+                                          TextSpan(
+                                              text: suggestion.songArtist,
+                                              style: const TextStyle(
+                                                  color: Colors.blueAccent,
+                                                  fontStyle: FontStyle.italic)),
+                                        ],
+                                      ),
+                                    )),
+                              )
+                            ],
+                          );
+                        },
+                      ),
+                      // ),
+                      // ),
                     );
                   }
                 }
@@ -1044,6 +1067,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         .collection("sessions")
         .get();
     for (var doc in querySnapshot.docs) {
+      print("this is the doc" + (doc.data() as Map).toString());
       Session newSession =
           Session(doc.id, doc.get("subGenre"), doc.get("genre"));
       try {
@@ -1129,6 +1153,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   void refreshRecordings() {
+    print("refreshed");
     setState(() {
       watchingUrls.clear();
     });
@@ -1172,12 +1197,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void signIn() async {
     FirebaseAuth.instance.authStateChanges().listen((User? user) async {
       if (user == null) {
-        print('User is currently signed out!');
+        if (kDebugMode) {
+          print('User is currently signed out!');
+        }
         UserCredential userCredential =
             await FirebaseAuth.instance.signInAnonymously();
         lasiUser = LasiUser(userCredential.user!.uid, true);
       } else {
-        print('User is signed in!');
+        if (kDebugMode) {
+          print('User is signed in!');
+        }
         // if (FirebaseAuth.instance.currentUser!.isAnonymous) {
         lasiUser =
             LasiUser(FirebaseAuth.instance.currentUser!.uid, user.isAnonymous);

@@ -4,7 +4,7 @@ class Monitor {
   // FlutterSoundPlayer audio = FlutterSoundPlayer();
 
   var audio = html.AudioElement();
-  bool on = true;
+  bool on = false;
 
   initMonitor() async {
     var constraints = {
@@ -44,7 +44,6 @@ class Monitor {
         ..preload = "auto"
         ..srcObject = stream;
       // html.document.body?.append(audio);
-      audio.play();
       // });
       // audio.play();
     });
@@ -73,7 +72,6 @@ class Monitor {
   }
 
   void dispose() {
-    print("disposed");
     audio.pause();
     audio.removeAttribute('srcObject'); // empty source
     audio.load();

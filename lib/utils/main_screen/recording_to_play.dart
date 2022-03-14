@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:la_ti/model/jam_instruments.dart';
 import 'package:la_ti/model/recording.dart';
 
 import 'custom_url_audio_player.dart';
@@ -54,7 +53,6 @@ class RecordingsToPlay {
 
   stopVideos() async {
     songStarted = false;
-    largestDifference = getDifference();
     if (timer != null && timer!.isActive) {
       timer!.cancel();
     }
@@ -63,6 +61,7 @@ class RecordingsToPlay {
         await player.stop();
       }
     }
+    largestDifference = getDifference();
   }
 
   pauseVideo() async {
@@ -98,7 +97,6 @@ class RecordingsToPlay {
         }
       }
     }
-    return 0.0;
     return 0.0;
   }
 
@@ -181,31 +179,29 @@ class RecordingsToPlay {
       if (player != null) {
         await player.play();
         if (record && !delaySet) {
+          print(DateTime.now().millisecondsSinceEpoch);
           timer =
-              Timer.periodic(const Duration(milliseconds: 10), (Timer t) async {
-                if (!player.isPaused()) {
-                  timer!.cancel();
-                  setDelay(DateTime
-                      .now()
-                      .millisecondsSinceEpoch);
-                } else if (isPlayersEmpty()) {
-                  timer!.cancel();
-                }
-              });
+              Timer.periodic(const Duration(milliseconds: 2), (Timer t) async {
+                print(DateTime.now().millisecondsSinceEpoch);
+            if (!player.isPaused()) {
+              timer!.cancel();
+              setDelay(DateTime.now().millisecondsSinceEpoch);
+            } else if (isPlayersEmpty()) {
+              timer!.cancel();
+            }
+          });
         }
       }
     }
     latencyTimer =
         Timer.periodic(const Duration(milliseconds: 50), (Timer t) async {
-          double largestDifference = getDifference();
-          print(largestDifference);
-          latencyTimer!.cancel();
-        });
+      double largestDifference = getDifference();
+      print("this is the largest differnece " + largestDifference.toString());
+      latencyTimer!.cancel();
+    });
     if (isPlayersEmpty()) {
       if (record && !delaySet) {
-        setDelay(DateTime
-            .now()
-            .millisecondsSinceEpoch);
+        setDelay(DateTime.now().millisecondsSinceEpoch);
       }
     }
   }
@@ -224,8 +220,8 @@ class RecordingsToPlay {
   void addRecordingMadeToRecordings() {
     previousRecordingPlayer =
         CustomUrlAudioPlayer(Recording(recordingPath, delay, ""), () {
-          songEnded();
-        }, delay);
+      songEnded();
+    }, delay);
   }
 
   Future<void> playRecording() async {
@@ -267,7 +263,7 @@ class RecordingsToPlay {
       if (customUrlAudioPlayer != null) {
         if (customUrlAudioPlayer.recording.uploaderId == uploaderId) {
           customUrlAudioPlayer.recording.userIsFollowing =
-          !customUrlAudioPlayer.recording.userIsFollowing;
+              !customUrlAudioPlayer.recording.userIsFollowing;
         }
       }
     }
@@ -287,24 +283,12 @@ class RecordingsToPlay {
     for (CustomUrlAudioPlayer? player in players) {
       if (player != null) {
         await player.play();
+        player.videoElement.volume = 0;
       }
     }
-    latencyTimer =
-        Timer.periodic(const Duration(milliseconds: 200), (Timer t) async {
-          double largestDifference = getDifference();
-          if (kDebugMode) {
-            print(largestDifference);
-          }
-          latencyTimer!.cancel();
-        });
-    if (watchRecording) {
-      previousRecordingPlayer.stop();
-    }
-    stopVideos();
-    resetRecordings();
-    if (watchRecording) {
-      await previousRecordingPlayer.resetVideo();
-    }
+    latencyTimer = Timer(const Duration(milliseconds: 350), () {
+      _resetVideos(watchRecording, false);
+    });
   }
 
   double getDifference() {
@@ -315,6 +299,9 @@ class RecordingsToPlay {
         {
           num currentTime = players[i]!.videoElement.currentTime -
               players[i]!.recording.delay / 1000;
+          if (kDebugMode) {
+            print("this is the current time " + currentTime.toString());
+          }
           if (currentTime > maxVal!) {
             maxVal = currentTime as double?;
           }
@@ -360,10 +347,23 @@ class RecordingsToPlay {
         // jamInstruments.add(JamInstruments(
         //     instrument: players[i]!.recording.instrument,
         //     displayName: players[i]!.recording.uploaderDisplayName));
-        jamInstruments.add(players[i]!.recording.uploaderDisplayName + ": " +
+        jamInstruments.add(players[i]!.recording.uploaderDisplayName +
+            ": " +
             players[i]!.recording.instrument);
       }
     }
     return jamInstruments;
+  }
+
+  void _resetVideos(bool watchRecording, bool secondTime) async {
+    for (CustomUrlAudioPlayer? player in players) {
+      if (player != null) {
+        await player.resetVideo();
+        player.videoElement.volume = 1;
+      }
+    }
+    if (watchRecording) {
+      await previousRecordingPlayer.resetVideo();
+    }
   }
 }

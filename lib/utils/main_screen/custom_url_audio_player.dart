@@ -1,6 +1,7 @@
 import 'dart:html' as html;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:just_audio/just_audio.dart';
@@ -19,6 +20,8 @@ class CustomUrlAudioPlayer {
   late FlutterSoundPlayer soundPlayer;
 
   AudioPlayer player = AudioPlayer();
+
+  bool firstPlaying = false;
 
   int delay = 0;
 
@@ -52,7 +55,7 @@ class CustomUrlAudioPlayer {
     // withVideo = recording.withVideo;
     withVideo = true;
     if (withVideo) {
-      blobPlayer = blobUrlPlayer(
+      blobPlayer = BlobUrlPlayer(
         key: UniqueKey(),
         source: recording.url,
         videoElement: videoElement,
@@ -80,21 +83,31 @@ class CustomUrlAudioPlayer {
       if (set) songEnded();
     });
     // videoElement.addEventListener('ended', (event) => songEnded());
-    videoElement.addEventListener('playing', (event) {
+    videoElement.addEventListener('playing', (event) async {
+      print("this is from the url song " + DateTime.now().millisecondsSinceEpoch.toString());
       if (firstTime) {
         firstTime = false;
         videoElement.pause();
+        print(videoElement.currentTime - delay / 1000);
         videoElement.volume = 1;
         set = true;
       }
     });
-    videoElement.addEventListener('pause', (event) => {playing = false});
-    videoElement.addEventListener('loadedmetadata', (event) async {
+    videoElement.addEventListener('waiting', (event) {
       if (playing) {
-        videoElement.volume = 0;
-        await videoElement.play();
-        firstTime = true;
+        if (kDebugMode) {
+          print("song ended");
+        }
+        songEnded();
       }
+    });
+    videoElement.addEventListener('pause', (event) => {});
+    videoElement.addEventListener('loadedmetadata', (event) async {
+      // if (playing) {
+      //   videoElement.volume = 0;
+      //   await videoElement.play();
+      //   firstTime = true;
+      // }
 
       videoElement.currentTime = delay / 1000;
       metadataEntered = true;
@@ -110,7 +123,8 @@ class CustomUrlAudioPlayer {
     await soundPlayer.openPlayer();
   }
 
-  play() async {
+  play([bool firstPlaying = false]) async {
+    firstTime = firstPlaying;
     if (withVideo) {
       videoElement.play();
     } else {
@@ -121,13 +135,13 @@ class CustomUrlAudioPlayer {
   }
 
   stop() async {
-    lastTime = videoElement.currentTime.toString();
     if (withVideo) {
       videoElement.pause();
     } else {
       soundPlayer.stopPlayer();
       // await player.stop();
     }
+    lastTime = videoElement.currentTime.toString();
   }
 
   pause() async {
@@ -216,20 +230,20 @@ class CustomUrlAudioPlayer {
   }
 }
 
-class blobUrlPlayer extends StatefulWidget {
+class BlobUrlPlayer extends StatefulWidget {
   final String source;
   final html.VideoElement videoElement;
 
-  const blobUrlPlayer(
+  const BlobUrlPlayer(
       {required Key key, required this.source, required this.videoElement})
       : super(key: key);
 
   @override
-  _blobUrlPlayerState createState() => _blobUrlPlayerState();
+  _BlobUrlPlayerState createState() => _BlobUrlPlayerState();
 }
 
 // ignore: camel_case_types
-class _blobUrlPlayerState extends State<blobUrlPlayer> {
+class _BlobUrlPlayerState extends State<BlobUrlPlayer> {
   // Widget _iframeWidget;
 
   @override
