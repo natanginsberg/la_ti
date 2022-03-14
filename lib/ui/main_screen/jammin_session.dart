@@ -416,7 +416,7 @@ class _JammingSessionState extends State<JammingSession> {
                           padding: const EdgeInsets.all(10),
                         ),
                         onPressed: () async {
-                          if (widget.recordingsToPlay.jamAdded) {
+                          if (!widget.recordingsToPlay.jamAdded) {
                             bool jamAdded = await widget.addJam();
                             if (jamAdded) {
                               widget.incrementJamsUsed();
